@@ -136,7 +136,7 @@ public class UdfLoader {
               if (parentClassLoader != loader) {
                 return true;
               }
-              return name.contains("ksql-engine");
+              return name.contains("ksql-engine") && !name.contains("ksql-functional-tests");
             })
         .matchClassesWithMethodAnnotation(Udf.class, handleUdfAnnotation(loader, pathLoadedFrom))
         .matchClassesWithAnnotation(UdafDescription.class,
