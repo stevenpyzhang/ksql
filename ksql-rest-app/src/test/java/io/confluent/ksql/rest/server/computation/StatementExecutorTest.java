@@ -838,11 +838,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   private void terminateQueries() {
     final Command terminateCommand1 = new Command(
-        "TERMINATE CSAS_USER1PV_0;", true,
             emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final CommandId terminateCommandId1 =
-        new CommandId(CommandId.Type.STREAM, "_TerminateGen", CommandId.Action.CREATE);
-    handleStatement(
         statementExecutor, terminateCommand1, terminateCommandId1, Optional.empty());
     assertThat(
         getCommandStatus(terminateCommandId1).getStatus(), equalTo(CommandStatus.Status.SUCCESS));

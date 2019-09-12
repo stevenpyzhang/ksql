@@ -36,7 +36,7 @@ public class Command {
                  @JsonProperty("streamsProperties") final Map<String, Object> overwriteProperties,
                  @JsonProperty("originalProperties") final Map<String, String> originalProperties) {
     this.statement = statement;
-    this.useOffsetAsQueryID = useOffsetAsQueryID == null ? false : true;
+    this.useOffsetAsQueryID = useOffsetAsQueryID == null ? false : useOffsetAsQueryID;
     this.overwriteProperties = Collections.unmodifiableMap(overwriteProperties);
     this.preVersion5 = originalProperties == null;
     this.originalProperties =
