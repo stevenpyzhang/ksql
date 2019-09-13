@@ -97,6 +97,7 @@ final class EngineExecutor {
         return ExecuteResult.of(msg);
       }
 
+      logicalPlan.setOffset(statement.getOffset());
       final QueryMetadata query = queryEngine.buildPhysicalPlan(
           logicalPlan,
           ksqlConfig,
@@ -104,6 +105,7 @@ final class EngineExecutor {
           engineContext.getMetaStore()
       );
 
+      System.out.println("Steven found" + query.getQueryApplicationId());
       validateQuery(query, statement);
 
       engineContext.registerQuery(query);

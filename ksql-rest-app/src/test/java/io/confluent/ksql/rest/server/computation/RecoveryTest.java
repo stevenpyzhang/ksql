@@ -671,4 +671,47 @@ public class RecoveryTest {
         recovered.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
         contains("A"));
   }
+
+  @Test
+  public void shouldUseOldQueryIdGenerationAndNewGeneration() {
+    commands.addAll(
+            ImmutableList.of(
+                new QueuedCommand(
+                    new CommandId(Type.STREAM, "A", Action.CREATE),
+                    new Command(
+                        "CREATE STREAM A (COLUMN STRING) "
+                                + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+                        false,
+                        Collections.emptyMap(),
+                        null
+                    )
+                ),
+                new QueuedCommand(
+                    new CommandId(Type.STREAM, "A", Action.CREATE),
+                    new Command(
+                        "CREATE STREAM B AS SELECT * FROM A;",
+                        false,
+                        Collections.emptyMap(),
+                        null
+                    )
+                )
+            )
+    );
+    final KsqlServer server = new KsqlServer(commands);
+    server.recover();
+    assertThat(
+            server.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
+            contains("A", "B"));
+    commands.add(
+            new QueuedCommand(
+                    new CommandId(Type.STREAM, "B", Action.DROP),
+                    new Command("DROP STREAM B;", false, Collections.emptyMap(), null)
+            )
+    );
+    final KsqlServer recovered = new KsqlServer(commands);
+    recovered.recover();
+    assertThat(
+            recovered.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
+            contains("A"));
+  }
 }

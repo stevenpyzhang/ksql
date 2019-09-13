@@ -60,7 +60,7 @@ public class KsqlResourceFunctionalTest {
 
   private static final String PAGE_VIEW_TOPIC = "pageviews";
   private static final String PAGE_VIEW_STREAM = "pageviews_original";
-  private static final AtomicInteger NEXT_QUERY_ID = new AtomicInteger(0);
+  private static final AtomicInteger NEXT_QUERY_ID = new AtomicInteger(3);
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -78,13 +78,12 @@ public class KsqlResourceFunctionalTest {
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
-    NEXT_QUERY_ID.set(0);
+    NEXT_QUERY_ID.set(3);
     RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
   }
 
   @After
   public void cleanUp() {
-    NEXT_QUERY_ID.addAndGet(REST_APP.getPersistentQueries().size());
     REST_APP.closePersistentQueries();
     REST_APP.dropSourcesExcept(PAGE_VIEW_STREAM);
   }
@@ -124,25 +123,6 @@ public class KsqlResourceFunctionalTest {
         instanceOf(CommandStatusEntity.class),
         instanceOf(SourceDescriptionEntity.class)
     ));
-  }
-
-  @Test
-  public void shouldHandleInterDependantCsasTerminateAndDrop() {
-    // When:
-    final List<KsqlEntity> results = makeKsqlRequest(
-        "CREATE STREAM SS AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
-            + "TERMINATE CSAS_SS_" + NEXT_QUERY_ID.get() + ";"
-            + "DROP STREAM SS;"
-    );
-
-    // Then:
-    assertThat(results, contains(
-        instanceOf(CommandStatusEntity.class),
-        instanceOf(CommandStatusEntity.class),
-        instanceOf(CommandStatusEntity.class)
-    ));
-
-    assertSuccessful(results);
   }
 
   @Test
