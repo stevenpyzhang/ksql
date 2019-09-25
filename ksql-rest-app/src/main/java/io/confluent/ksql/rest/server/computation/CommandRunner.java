@@ -208,14 +208,16 @@ public class CommandRunner implements Closeable {
 
     @Override
     public void run() {
-      try {
-        while (!closed) {
+      while (!closed) {
+        try {
           log.debug("Polling for new writes to command topic");
           fetchAndRunCommands();
-        }
-      } catch (final WakeupException wue) {
-        if (!closed) {
-          throw wue;
+        } catch (final WakeupException wue) {
+          if (!closed) {
+            throw wue;
+          }
+        } catch (final Exception e) {
+          log.error("Error thrown in Command Runner thread." , e);
         }
       }
     }

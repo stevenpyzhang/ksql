@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
@@ -50,6 +51,7 @@ public class KsqlServerMain {
           System.getProperties()
       );
 
+      Thread.setDefaultUncaughtExceptionHandler(new KsqlUncaughtExceptionHandler());
       final String installDir = properties.getOrDefault("ksql.server.install.dir", "");
       final KsqlConfig ksqlConfig = new KsqlConfig(properties);
       final String streamsStateDirPath = ksqlConfig.getKsqlStreamConfigProps().getOrDefault(
