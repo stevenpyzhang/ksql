@@ -114,6 +114,8 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.ProducerTransactionManager;
+import io.confluent.ksql.rest.server.ProducerTransactionManagerFactory;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
@@ -235,6 +237,8 @@ public class KsqlResourceTest {
       .valueColumn(ColumnName.of("f1"), SqlTypes.STRING)
       .build();
 
+  private static final String COMMAND_TOPIC_NAME = "command-topic";
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
@@ -263,6 +267,10 @@ public class KsqlResourceTest {
   private Injector sandboxTopicInjector;
   @Mock
   private KsqlAuthorizationValidator authorizationValidator;
+  @Mock
+  private ProducerTransactionManagerFactory producerTransactionManagerFactory;
+  @Mock
+  private ProducerTransactionManager producerTransactionManager;
 
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
@@ -298,12 +306,15 @@ public class KsqlResourceTest {
         metaStore
     );
 
+    when(producerTransactionManagerFactory.createProducerTransactionManager())
+        .thenReturn(producerTransactionManager);
+
     ksqlEngine = realEngine;
     when(sandbox.getMetaStore()).thenAnswer(inv -> metaStore.copy());
 
     addTestTopicAndSources();
 
-    when(commandStore.enqueueCommand(any()))
+    when(commandStore.enqueueCommand(any(), any(ProducerTransactionManager.class)))
         .thenReturn(commandStatus)
         .thenReturn(commandStatus1)
         .thenReturn(commandStatus2);
@@ -354,7 +365,8 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        authorizationValidator
+        authorizationValidator,
+        producerTransactionManagerFactory
     );
 
     // Then:
@@ -382,7 +394,8 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        authorizationValidator
+        authorizationValidator,
+        producerTransactionManagerFactory
     );
 
     // Then:
@@ -688,7 +701,9 @@ public class KsqlResourceTest {
             configured(
               preparedStatement(
               "CREATE STREAM S AS SELECT * FROM test_stream;",
-              CreateStreamAsSelect.class)))));
+              CreateStreamAsSelect.class)))
+        ), any(ProducerTransactionManager.class)
+    );
   }
 
   @Test
@@ -698,7 +713,7 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(configured(VALID_EXECUTABLE_REQUEST.getStreamsProperties(), ksqlConfig)));
+        argThat(configured(VALID_EXECUTABLE_REQUEST.getStreamsProperties(), ksqlConfig)), any(ProducerTransactionManager.class));
   }
 
   @Test
@@ -807,7 +822,8 @@ public class KsqlResourceTest {
         argThat(is(configured(preparedStatement(
             "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');",
             CreateStream.class)
-        ))));
+        ))), any(ProducerTransactionManager.class)
+    );
   }
 
   @Test
@@ -832,7 +848,7 @@ public class KsqlResourceTest {
 
     // Then:
     verify(sandbox).execute(any(SandboxedServiceContext.class), eq(configuredStatement));
-    verify(commandStore).enqueueCommand(argThat(configured(preparedStatementText(sql))));
+    verify(commandStore).enqueueCommand(argThat(configured(preparedStatementText(sql))), any(ProducerTransactionManager.class));
   }
 
   @Test
@@ -856,7 +872,7 @@ public class KsqlResourceTest {
     makeRequest(sql);
 
     // Then:
-    verify(commandStore).enqueueCommand(eq(configured));
+    verify(commandStore).enqueueCommand(eq(configured), any(ProducerTransactionManager.class));
   }
 
   @Test
@@ -914,7 +930,7 @@ public class KsqlResourceTest {
 
     // Then:
     verify(sandbox).execute(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
-    verify(commandStore).enqueueCommand(eq(CFG_1_WITH_SCHEMA));
+    verify(commandStore).enqueueCommand(eq(CFG_1_WITH_SCHEMA), any(ProducerTransactionManager.class));
   }
 
   @Test
@@ -1119,7 +1135,7 @@ public class KsqlResourceTest {
     );
 
     // Then:
-    verify(commandStore, never()).enqueueCommand(any());
+    verify(commandStore, never()).enqueueCommand(any(), any(ProducerTransactionManager.class));
   }
 
   @Test
@@ -1137,7 +1153,8 @@ public class KsqlResourceTest {
     // Then:
     verify(commandStore)
         .enqueueCommand(
-            argThat(is(configured(preparedStatement(terminateSql, TerminateQuery.class)))));
+            argThat(is(configured(preparedStatement(terminateSql, TerminateQuery.class)))),
+            any(ProducerTransactionManager.class));
 
     assertThat(result.getStatementText(), is(terminateSql));
   }
@@ -1296,7 +1313,8 @@ public class KsqlResourceTest {
         argThat(is(configured(
             preparedStatementText(csas),
             ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
-            ksqlConfig))));
+            ksqlConfig))),
+        any(ProducerTransactionManager.class));
 
     assertThat(results, hasSize(1));
     assertThat(results.get(0).getStatementText(), is(csas));
@@ -1318,7 +1336,8 @@ public class KsqlResourceTest {
         argThat(is(configured(
             preparedStatementText(csas),
             ImmutableMap.of(),
-            ksqlConfig))));
+            ksqlConfig))),
+        any(ProducerTransactionManager.class));
   }
 
   @Test
@@ -1365,7 +1384,8 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(configured(preparedStatementText(csas), emptyMap(), ksqlConfig))));
+        argThat(is(configured(preparedStatementText(csas), emptyMap(), ksqlConfig))),
+        any(ProducerTransactionManager.class));
 
     assertThat(result.getStatementText(), is(csas));
   }
@@ -1396,7 +1416,8 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(configured(preparedStatementText(csas), emptyMap(), ksqlConfig))));
+        argThat(is(configured(preparedStatementText(csas), emptyMap(), ksqlConfig))),
+        any(ProducerTransactionManager.class));
   }
 
   @Test
@@ -1442,7 +1463,7 @@ public class KsqlResourceTest {
         containsString("would cause the number of active, persistent queries "
             + "to exceed the configured limit"));
 
-    verify(commandStore, never()).enqueueCommand(any());
+    verify(commandStore, never()).enqueueCommand(any(), any(ProducerTransactionManager.class));
   }
 
   @Test
@@ -1672,13 +1693,15 @@ public class KsqlResourceTest {
             preparedStatementText(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT),
             Collections.singletonMap(
                 ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, ImmutableList.of("Foo")),
-            ksqlConfig))));
+            ksqlConfig))),
+        any(ProducerTransactionManager.class));
   }
 
   @Test
   public void shouldFailIfCannotWriteTerminateCommand() {
     // Given:
-    when(commandStore.enqueueCommand(any())).thenThrow(new KsqlException(""));
+    when(commandStore.enqueueCommand(any(), any(ProducerTransactionManager.class)))
+        .thenThrow(new KsqlException(""));
 
     // When:
     final Response response = ksqlResource.terminateCluster(
@@ -1721,7 +1744,7 @@ public class KsqlResourceTest {
         Code.BAD_REQUEST);
 
     // Then:
-    verify(commandStore, never()).enqueueCommand(any());
+    verify(commandStore, never()).enqueueCommand(any(), any(ProducerTransactionManager.class));
   }
 
   @Test
@@ -1811,7 +1834,8 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(configured(preparedStatement(instanceOf(CreateStreamAsSelect.class))))));
+        argThat(is(configured(preparedStatement(instanceOf(CreateStreamAsSelect.class))))),
+        any(ProducerTransactionManager.class));
   }
 
   @Test
@@ -1829,7 +1853,8 @@ public class KsqlResourceTest {
   @Test
   public void shouldThrowServerErrorOnFailedToDistribute() {
     // Given:
-    when(commandStore.enqueueCommand(any())).thenThrow(new KsqlException("blah"));
+    when(commandStore.enqueueCommand(any(), any(ProducerTransactionManager.class)))
+        .thenThrow(new KsqlException("blah"));
     final String statement = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
 
     // Expect:
@@ -2048,7 +2073,8 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        authorizationValidator
+        authorizationValidator,
+        producerTransactionManagerFactory
     );
 
     ksqlResource.configure(ksqlConfig);
