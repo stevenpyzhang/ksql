@@ -32,36 +32,99 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-common</artifactId>
+            <version>5.4.0-20200107.035723-649</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
+            <version>1.4</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
-            <artifactId>kafka-schema-registry-client</artifactId>
+            <artifactId>common-config</artifactId>
+            <version>5.4.0-20200106.210604-117</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>common-logging</artifactId>
-            <version>${confluent.version}</version>
+            <version>5.4.0-20200106.210610-117</version>
         </dependency>
 
-	<dependency>
-		<groupId>io.confluent</groupId>
-		<artifactId>kafka-connect-avro-converter</artifactId>
-		<version>${confluent.version}</version>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>common-utils</artifactId>
+            <version>5.4.0-20200106.210548-117</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>confluent-log4j-extensions</artifactId>
+            <version>5.4.0-20200106.210617-117</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-api</artifactId>
+            <version>5.4.0-ccs-20200108.020145-386</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-json</artifactId>
+            <version>5.4.0-ccs-20200108.020149-386</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-avro-serializer</artifactId>
+            <version>5.4.0-20200107.032509-214</version>
         </dependency>
 
-        <!-- Required for running tests -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>5.4.0-ccs-20200108.020137-387</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-json</artifactId>
+            <version>5.4.0-ccs-20200108.020149-386</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-runtime</artifactId>
+            <version>5.4.0-ccs-20200108.020152-386</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-connect-avro-converter</artifactId>
+            <version>5.4.0-20200107.032532-214</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-avro-serializer</artifactId>
+            <version>5.4.0-20200107.032509-214</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-schema-registry-client</artifactId>
+            <version>5.4.0-20200107.032503-214</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-streams</artifactId>
+            <version>5.4.0-ccs-20200108.020141-387</version>
+        </dependency>
+    <!-- Required for running tests -->
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
