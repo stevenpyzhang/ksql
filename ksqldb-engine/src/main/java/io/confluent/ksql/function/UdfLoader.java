@@ -156,6 +156,8 @@ public class UdfLoader {
             method.isVarArgs()
         );
 
+    System.out.println("here we are");
+    System.out.println(schemaProviderFunction);
     return KsqlScalarFunction.create(
         schemaProviderFunction,
         javaReturnSchema,

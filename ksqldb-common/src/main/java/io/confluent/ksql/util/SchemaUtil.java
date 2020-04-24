@@ -195,6 +195,8 @@ public final class SchemaUtil {
     }
 
     if (actual.baseType() == SqlBaseType.STRUCT && declared instanceof StructType) {
+      System.out.println("areCompatible actual:" + actual);
+      System.out.println("areCompatible declared:" + declared);
       return isStructCompatible(actual, declared);
     }
 

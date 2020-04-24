@@ -194,7 +194,7 @@ public final class FunctionLoaderUtils {
     } else {
       schemaProvider = null;
     }
-
+    System.out.println(schemaProvider);
     return (parameters, arguments) -> {
       if (schemaProvider != null) {
         final SqlType returnType = schemaProvider.apply(arguments);
@@ -211,6 +211,7 @@ public final class FunctionLoaderUtils {
       }
 
       if (!GenericsUtil.hasGenerics(javaReturnSchema)) {
+        System.out.println(javaReturnSchema);
         return SchemaConverters.functionToSqlConverter().toSqlType(javaReturnSchema);
       }
 

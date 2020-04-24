@@ -76,6 +76,9 @@ public class KsqlFunction implements FunctionSignature {
   }
 
   public SqlType getReturnType(final List<SqlType> arguments) {
+    System.out.println(name());
+    System.out.println(parameters());
+    System.out.println(arguments);
     return returnSchemaProvider.resolve(parameters(), arguments);
   }
 

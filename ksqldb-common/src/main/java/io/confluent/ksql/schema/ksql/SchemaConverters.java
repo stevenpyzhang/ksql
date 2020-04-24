@@ -19,6 +19,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.DecimalType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
@@ -223,6 +224,7 @@ public final class SchemaConverters {
     }
 
     private static SqlDecimal handleBytes(final Schema schema) {
+      System.out.println("handle bytes");
       DecimalUtil.requireDecimal(schema);
       return SqlDecimal.of(DecimalUtil.precision(schema), DecimalUtil.scale(schema));
     }
@@ -283,6 +285,7 @@ public final class SchemaConverters {
     }
 
     private static SchemaBuilder fromSqlDecimal(final SqlDecimal sqlDecimal) {
+      System.out.println("from SQL Decimal");
       return DecimalUtil.builder(sqlDecimal.getPrecision(), sqlDecimal.getScale());
     }
 
@@ -326,6 +329,7 @@ public final class SchemaConverters {
 
     @Override
     public SqlBaseType toSqlType(final Class<?> javaType) {
+      System.out.println("java ot sql");
       return JAVA_TO_SQL.entrySet().stream()
           .filter(e -> e.getKey().isAssignableFrom(javaType))
           .map(Entry::getValue)
@@ -364,6 +368,8 @@ public final class SchemaConverters {
     @Override
     public SqlType toSqlType(final ParamType paramType) {
       final SqlType sqlType = FUNCTION_TO_SQL.get(paramType);
+      System.out.println("paramType" + paramType);
+      System.out.println("sqlType:" + sqlType);
       if (sqlType != null) {
         return sqlType;
       }
@@ -376,13 +382,21 @@ public final class SchemaConverters {
         return SqlTypes.array(toSqlType(((ArrayType) paramType).element()));
       }
 
+//      if (paramType instanceof DecimalType) {
+//        return SqlTypes.decimal(((DecimalType) paramType)., ((DecimalType) paramType)
+//      }
       if (paramType instanceof StructType) {
+        System.out.println("steven paramtype" + paramType);
         final Builder struct = SqlTypes.struct();
         ((StructType) paramType).getSchema()
-            .forEach((name, type) -> struct.field(name, toSqlType(type)));
+            .forEach((name, type) -> {
+              System.out.println(name);
+              System.out.println(type);
+              struct.field(name, toSqlType(type));
+            });
         return struct.build();
       }
-
+      System.out.println("steven heree");
       throw new KsqlException("Cannot convert param type to sql type: " + paramType);
     }
   }
@@ -401,6 +415,7 @@ public final class SchemaConverters {
 
     @Override
     public SqlBaseType toBaseType(final ParamType paramType) {
+      System.out.println("is base type called?");
       final SqlBaseType sqlType = FUNCTION_TO_BASE.get(paramType);
       if (sqlType != null) {
         return sqlType;
@@ -418,6 +433,7 @@ public final class SchemaConverters {
         return SqlBaseType.STRUCT;
       }
 
+      System.out.println("other here");
       throw new KsqlException("Cannot convert param type to sql type: " + paramType);
     }
   }
@@ -426,6 +442,7 @@ public final class SchemaConverters {
 
     @Override
     public ParamType toFunctionType(final SqlType sqlType) {
+      System.out.println("SQL to function");
       final ParamType paramType = FunctionToSql.FUNCTION_TO_SQL.inverse().get(sqlType);
       if (paramType != null) {
         return paramType;
