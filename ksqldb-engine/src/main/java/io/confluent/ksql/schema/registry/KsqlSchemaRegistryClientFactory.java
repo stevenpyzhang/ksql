@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
 import org.apache.kafka.common.network.Mode;
+import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
 import org.apache.kafka.common.security.ssl.SslFactory;
 
 /**
@@ -112,7 +113,8 @@ public class KsqlSchemaRegistryClientFactory {
     }
   
     final RestService restService = serviceSupplier.get();
-    final SSLContext sslContext = sslFactory.sslEngineBuilder().sslContext();
+    final SSLContext sslContext =
+        DefaultSslEngineFactory.castOrThrow(sslFactory.sslEngineFactory()).sslContext();
     if (sslContext != null) {
       restService.setSslSocketFactory(sslContext.getSocketFactory());
     }
