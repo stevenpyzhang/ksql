@@ -85,6 +85,7 @@ import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
@@ -95,6 +96,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.RetryUtil;
+import io.confluent.ksql.util.TelemetryReporterUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -262,7 +264,9 @@ public final class KsqlRestApplication implements Executable {
         serviceContext,
         this.restConfig,
         this.ksqlConfigNoPort);
-    MetricCollectors.addConfigurableReporter(ksqlConfig);
+    MetricCollectors.addConfigurableReporter(
+        ksqlConfig,
+        KafkaClusterUtil.getKafkaClusterId(serviceContext));
     log.debug("ksqlDB API server instance created");
   }
 
@@ -549,7 +553,9 @@ public final class KsqlRestApplication implements Executable {
   }
 
   public static KsqlRestApplication buildApplication(final KsqlRestConfig restConfig) {
-    final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+    final KsqlConfig ksqlConfig =
+        TelemetryReporterUtil.addTelemetryReporterConfigs(
+            new KsqlConfig(restConfig.getKsqlConfigProperties()));
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
     final ServiceContext serviceContext = new LazyServiceContext(() ->
@@ -576,7 +582,10 @@ public final class KsqlRestApplication implements Executable {
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
-    final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+    final KsqlConfig ksqlConfig =
+        TelemetryReporterUtil.addTelemetryReporterConfigs(
+            new KsqlConfig(restConfig.getKsqlConfigProperties()));
+    final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
 
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(restConfig.getOriginals());
@@ -609,8 +618,12 @@ public final class KsqlRestApplication implements Executable {
         commandTopicName,
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-        restConfig.getCommandConsumerProperties(),
-        restConfig.getCommandProducerProperties()
+        TelemetryReporterUtil.addTelemetryReporterConfigs(
+            restConfig.getCommandConsumerProperties(),
+            ksqlServiceId),
+        TelemetryReporterUtil.addTelemetryReporterConfigs(
+            restConfig.getCommandProducerProperties(),
+            ksqlServiceId)
     );
 
     final InteractiveStatementExecutor statementExecutor =
