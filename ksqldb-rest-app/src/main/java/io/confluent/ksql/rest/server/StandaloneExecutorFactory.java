@@ -35,6 +35,7 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
+import io.confluent.ksql.util.TelemetryReporterUtil;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.util.Map;
@@ -88,7 +89,8 @@ public final class StandaloneExecutorFactory {
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final StandaloneExecutorConstructor constructor
   ) {
-    final KsqlConfig baseConfig = new KsqlConfig(properties);
+    final KsqlConfig baseConfig =
+        TelemetryReporterUtil.addConfluentMetricsContextConfigs(new KsqlConfig(properties));
 
     final ServiceContext serviceContext = serviceContextFactory.apply(baseConfig);
 
