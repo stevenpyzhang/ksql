@@ -119,6 +119,7 @@ public final class MetricCollectors {
       final KsqlConfig ksqlConfig
   ) {
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    System.out.println(ksqlConfig.originals());
     final Map<String, Object> props = ksqlConfig.originals();
     props.putAll(addConfluentMetricsContextConfigsForKsql(ksqlServiceId));
     final KsqlConfig ksqlConfigWithMetricsContext = new KsqlConfig(props);
@@ -135,6 +136,7 @@ public final class MetricCollectors {
           KSQL_JMX_PREFIX,
           ksqlConfigWithMetricsContext.originalsWithPrefix(
               CommonClientConfigs.METRICS_CONTEXT_PREFIX));
+      System.out.println(metricsContext.contextLabels());
       for (final MetricsReporter reporter : reporters) {
         reporter.contextChange(metricsContext);
         metrics.addReporter(reporter);
