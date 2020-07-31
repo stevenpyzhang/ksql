@@ -285,6 +285,10 @@ public class CommandRunner implements Closeable {
         ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.ERROR;
   }
 
+  public CommandQueue getCommandQueue() {
+    return commandStore;
+  }
+
   private class Runner implements Runnable {
 
     @Override
