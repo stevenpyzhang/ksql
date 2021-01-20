@@ -1185,10 +1185,12 @@ public class AstBuilder {
 
     @Override
     public Node visitFunctionCall(final SqlBaseParser.FunctionCallContext context) {
+      final List<Expression> expressionList = visit(context.expression(), Expression.class);
+      expressionList.addAll(visit(context.lambdaFunction(), Expression.class));
       return new FunctionCall(
           getLocation(context),
           FunctionName.of(ParserUtil.getIdentifierText(context.identifier())),
-          visit(context.expression(), Expression.class)
+          expressionList
       );
     }
 
