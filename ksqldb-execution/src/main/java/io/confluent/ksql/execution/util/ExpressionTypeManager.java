@@ -64,6 +64,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
@@ -75,9 +76,13 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ExpressionTypeManager {
@@ -145,7 +150,7 @@ public class ExpressionTypeManager {
     ) {
       process(node.getBody(), context);
       // TODO: add proper type inference
-      context.setSqlType(SqlTypes.INTEGER);
+      context.setSqlType(SqlLambda.of(SqlTypes.INTEGER, SqlTypes.INTEGER));
       return null;
     }
 
@@ -244,7 +249,7 @@ public class ExpressionTypeManager {
       expressionTypeContext.setSqlType(structField.type());
       return null;
     }
-
+  
     @Override
     public Void visitStringLiteral(
         final StringLiteral node, final ExpressionTypeContext expressionTypeContext
