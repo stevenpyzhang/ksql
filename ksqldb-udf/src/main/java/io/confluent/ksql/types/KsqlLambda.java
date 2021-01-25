@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.types;
 
-
 import java.util.function.Function;
 
 public class KsqlLambda<T, R> {

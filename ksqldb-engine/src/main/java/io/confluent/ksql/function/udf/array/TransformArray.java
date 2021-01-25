@@ -22,7 +22,6 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.types.KsqlLambda;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**

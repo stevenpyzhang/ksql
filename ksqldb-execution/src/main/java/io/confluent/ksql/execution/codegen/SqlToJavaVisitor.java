@@ -464,7 +464,8 @@ public class SqlToJavaVisitor {
         }
 
         final Expression testArg = convertArgument(arg, sqlType, paramType);
-        final Pair<String, SqlType> pair = process(convertArgument(arg, sqlType, paramType), context);
+        final Pair<String, SqlType> pair =
+            process(convertArgument(arg, sqlType, paramType), context);
         joiner.add(process(convertArgument(arg, sqlType, paramType), context).getLeft());
       }
 
@@ -713,7 +714,7 @@ public class SqlToJavaVisitor {
     public Pair<String, SqlType> visitCast(final Cast node, final Void context) {
       final Pair<String, SqlType> expr = process(node.getExpression(), context);
       final SqlType to = node.getType().getSqlType();
-      final Pair<String, SqlType> pair = Pair.of(genCastCode(expr, to), to);
+      //final Pair<String, SqlType> pair = Pair.of(genCastCode(expr, to), to);
       return Pair.of(genCastCode(expr, to), to);
     }
 

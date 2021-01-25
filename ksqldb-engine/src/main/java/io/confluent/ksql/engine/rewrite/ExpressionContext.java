@@ -31,7 +31,8 @@ public class ExpressionContext {
   public void addLambdaArguments(final List<String> newArguments) {
     final int previousLambdaArgumentsLength = lambdaArguments.size();
     lambdaArguments.addAll(newArguments);
-    if (new HashSet<>(lambdaArguments).size() < previousLambdaArgumentsLength + newArguments.size()) {
+    if (new HashSet<>(lambdaArguments).size()
+        < previousLambdaArgumentsLength + newArguments.size()) {
       throw new KsqlException("Duplicate lambda arguments are not allowed.");
     }
   }

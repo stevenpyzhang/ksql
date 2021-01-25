@@ -110,7 +110,9 @@ public final class UdfUtil {
     return schema;
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static ParamType handleParameterizedType(final Type type) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {

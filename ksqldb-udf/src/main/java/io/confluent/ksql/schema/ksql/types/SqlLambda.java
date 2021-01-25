@@ -76,6 +76,6 @@ public final class SqlLambda extends SqlType {
 
   @Override
   public String toString(final FormatOptions formatOptions) {
-    return "Lambda<"+ inputType + ", " + returnType + ">";
+    return "Lambda<" + inputType + ", " + returnType + ">";
   }
 }

@@ -185,11 +185,13 @@ public final class GenericsUtil {
     return ImmutableMap.copyOf(mapping);
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static boolean resolveGenerics(
       final List<Entry<GenericType, SqlType>> mapping,
       final ParamType schema,
       final SqlType instance
   ) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (!isGeneric(schema) && !matches(schema, instance)) {
       // cannot identify from type mismatch
       return false;
