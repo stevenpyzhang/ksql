@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.LambdaFunctionExpression;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -39,6 +39,7 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Explain;
@@ -299,7 +300,7 @@ public class AstBuilderTest {
                 FunctionName.of("TRANSFORM_ARRAY"),
                 ImmutableList.of(
                     column("COL4"),
-                    new LambdaFunctionExpression(
+                    new LambdaFunctionCall(
                         ImmutableList.of("X"),
                         new ArithmeticBinaryExpression(
                             Operator.ADD,
@@ -310,6 +311,18 @@ public class AstBuilderTest {
             ),
             Optional.empty())
     ))));
+  }
+
+  @Test
+  public void shouldNotBuildLambdaFunctionNotLastArgument() {
+    // Given:
+    final Exception e = assertThrows(
+        ParseFailedException.class,
+        () -> givenQuery("SELECT TRANSFORM_ARRAY(X => X + 5, Col4) FROM TEST1;")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("mismatched input '=>' expecting {',', ')'}"));
   }
 
   @Test
