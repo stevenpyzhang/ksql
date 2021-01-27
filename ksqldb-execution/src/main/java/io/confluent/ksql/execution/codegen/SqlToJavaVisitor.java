@@ -56,7 +56,7 @@ import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
-import io.confluent.ksql.execution.expression.tree.LambdaFunctionExpression;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
@@ -357,7 +357,7 @@ public class SqlToJavaVisitor {
     @Override
     // CHECKSTYLE_RULES.OFF: TodoComment
     public Pair<String, SqlType> visitLambdaExpression(
-        final LambdaFunctionExpression exp, final Void context) {
+        final LambdaFunctionCall exp, final Void context) {
       final Pair<String, SqlType> lambdaBody = process(exp.getBody(), context);
       final List<Pair<String, Class<?>>> argPairs = new ArrayList<>();
       for (final String lambdaArg: exp.getArguments()) {
@@ -466,7 +466,7 @@ public class SqlToJavaVisitor {
         final Expression testArg = convertArgument(arg, sqlType, paramType);
         final Pair<String, SqlType> pair =
             process(convertArgument(arg, sqlType, paramType), context);
-        joiner.add(process(convertArgument(arg, sqlType, paramType), context).getLeft());
+        joiner.add(pair.getLeft());
       }
 
 
