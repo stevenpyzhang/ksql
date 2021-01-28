@@ -95,6 +95,7 @@ import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.types.KsqlLambda;
@@ -358,18 +359,23 @@ public class SqlToJavaVisitor {
     // CHECKSTYLE_RULES.OFF: TodoComment
     public Pair<String, SqlType> visitLambdaExpression(
         final LambdaFunctionCall exp, final Void context) {
+      exp.getBody().setInputType(exp.getInputType());
       final Pair<String, SqlType> lambdaBody = process(exp.getBody(), context);
       final List<Pair<String, Class<?>>> argPairs = new ArrayList<>();
       for (final String lambdaArg: exp.getArguments()) {
         // TODO add proper type inference
-        argPairs.add(new Pair<>(lambdaArg, Integer.class));
+        argPairs.add(new Pair<>(lambdaArg, SchemaConverters.sqlToJavaConverter().toJavaType(exp.getInputType())));
       }
+      final SqlType sqlReturnType = lambdaBody.getRight() == SqlTypes.LAMBDALITERAL ? exp.getInputType() : lambdaBody.getRight();
       final String javaReturnType =
           SchemaConverters.sqlToJavaConverter()
-              .toJavaType(lambdaBody.getRight()).getTypeName() + ".class";
+              .toJavaType(sqlReturnType).getTypeName() + ".class";
+      final String javaInputType =
+          SchemaConverters.sqlToJavaConverter()
+              .toJavaType(exp.getInputType()).getTypeName() + ".class";
       return new Pair<>(
           "new KsqlLambda("
-              + "Integer.class" + ", "
+              + javaInputType + ", "
               + javaReturnType + ", "
               + LambdaUtil.function(argPairs, lambdaBody.getLeft()) + ")",
           expressionTypeManager.getExpressionSqlType(exp));
@@ -378,7 +384,7 @@ public class SqlToJavaVisitor {
     @Override
     public Pair<String, SqlType> visitLambdaLiteral(
         final LambdaLiteral lambdaLiteral, final Void context) {
-      return new Pair<>(lambdaLiteral.getValue(), SqlTypes.INTEGER);
+      return new Pair<>(lambdaLiteral.getValue(), SqlTypes.LAMBDALITERAL);
     }
 
     @Override
@@ -443,6 +449,11 @@ public class SqlToJavaVisitor {
           .map(expressionTypeManager::getExpressionSqlType)
           .collect(Collectors.toList());
 
+      // if there are any lambda types that haven't been resolved we set them to the input requred by the function
+      if (argumentSchemas.contains(SqlTypes.LAMBDALITERAL)) {
+        argumentSchemas.replaceAll(i -> i == SqlTypes.LAMBDALITERAL ? SqlPrimitiveType.of(udfFactory.getMetadata().getCategory()) : i);
+      }
+
       final KsqlFunction function = udfFactory.getFunction(argumentSchemas);
 
       final SqlType functionReturnSchema = function.getReturnType(argumentSchemas);
@@ -452,6 +463,7 @@ public class SqlToJavaVisitor {
       final List<Expression> arguments = node.getArguments();
 
       final StringJoiner joiner = new StringJoiner(", ");
+      SqlType input = null;
       for (int i = 0; i < arguments.size(); i++) {
         final Expression arg = arguments.get(i);
         final SqlType sqlType = argumentSchemas.get(i);
@@ -467,6 +479,16 @@ public class SqlToJavaVisitor {
         final Pair<String, SqlType> pair =
             process(convertArgument(arg, sqlType, paramType), context);
         joiner.add(pair.getLeft());
+        /*if (testArg instanceof LambdaFunctionExpression) {
+          testArg.setInputType(input);
+        } else if (testArg instanceof UnqualifiedColumnReferenceExp) {
+          try {
+            SqlArray inputArray = (SqlArray) sqlType;
+            input = inputArray.getItemType();
+          } catch (final ClassCastException e) { }
+        }
+        final Pair<String, SqlType> pair = process(testArg, context);
+        joiner.add(process(convertArgument(arg, sqlType, paramType), context).getLeft());*/
       }
 
 

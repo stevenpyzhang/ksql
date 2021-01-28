@@ -19,6 +19,43 @@
         {"topic": "OUTPUT", "value": {"NEW_ARRAY":[10, null]}},
         {"topic": "OUTPUT", "value": {"NEW_ARRAY":null}}
       ]
+    },
+    {
+      "name": "capitalize string",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<string>) WITH (kafka_topic='test_topic',value_format='AVRO');",
+        "CREATE TABLE OUTPUT as SELECT ID, transform_array(VALUE, x => UCASE(x)) AS LAMBDA FROM TEST group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": ["hello", "these", "are", "my", "strings"]}},
+        {"topic": "test_topic", "key": 1, "value": {"VALUE": ["check", null, "null"]}},
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": ["ksqldb", "kafka", "streams"]}},
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0,"value": {"LAMBDA": ["HELLO", "THESE", "ARE", "MY", "STRINGS"]}},
+        {"topic": "OUTPUT", "key": 1,"value": {"LAMBDA": ["CHECK", "NULL"]}},
+        {"topic": "OUTPUT", "key": 0,"value": {"LAMBDA": ["KSQLDB", "KAFKA", "STREAMS"]}},
+      ]
+    },
+    {
+      "name": "case check - input: int, output: string",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<integer>) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE TABLE OUTPUT as SELECT ID, TRANSFORM_ARRAY(VALUE, x => CASE WHEN x > 10 THEN 'above 10' ELSE 'TOO LOW' END) from TEST emit changes;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": {"value": [2, 12, 3, 4]}},
+        {"topic": "test_topic", "key": 5,"value": {"value": [11, 13, null]}},
+        {"topic": "test_topic", "key": 100,"value": {"value": [10, 5, 4]}},
+        {"topic": "test_topic", "key": 100,"value": {"value": [2, 3, 100]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0,"value": {"SUM": ["TOO LOW", "above 10", "TOO LOW", "TOO LOW"]}},
+        {"topic": "OUTPUT", "key": 0,"value": {"SUM": ["above 10", "above 10"]}},
+        {"topic": "OUTPUT", "key": 100,"value": {"SUM": ["TOO LOW", "TOO LOW", "TOO LOW"]}},
+        {"topic": "OUTPUT", "key": 100,"value": {"SUM": ["TOO LOW", "TOO LOW", "above 10"]}}
+      ]
     }
+
   ]
 }

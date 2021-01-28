@@ -345,6 +345,7 @@ public final class SchemaConverters {
         .put(Map.class, SqlBaseType.MAP)
         .put(Struct.class, SqlBaseType.STRUCT)
         .put(java.sql.Timestamp.class, SqlBaseType.TIMESTAMP)
+        .put(SqlLambda.class, SqlBaseType.LAMBDA)
         .build();
 
     @Override
@@ -383,6 +384,7 @@ public final class SchemaConverters {
             .put(ParamTypes.LONG, SqlTypes.BIGINT)
             .put(ParamTypes.DOUBLE, SqlTypes.DOUBLE)
             .put(ParamTypes.TIMESTAMP, SqlTypes.TIMESTAMP)
+            .put(ParamTypes.LAMBDALITERAL, SqlTypes.LAMBDALITERAL)
             .build();
 
     @Override
@@ -425,6 +427,7 @@ public final class SchemaConverters {
             .put(ParamTypes.DOUBLE, SqlBaseType.DOUBLE)
             .put(ParamTypes.DECIMAL, SqlBaseType.DECIMAL)
             .put(ParamTypes.TIMESTAMP, SqlBaseType.TIMESTAMP)
+            .put(ParamTypes.LAMBDALITERAL, SqlBaseType.LAMBDA)
             .build();
 
     @Override

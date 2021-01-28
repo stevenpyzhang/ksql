@@ -19,6 +19,8 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.parser.Node;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+
 import java.util.Optional;
 
 /**
@@ -28,8 +30,10 @@ import java.util.Optional;
 @Immutable
 public abstract class Expression extends Node {
 
+  private final SqlInputType inputType;
   protected Expression(final Optional<NodeLocation> location) {
     super(location);
+    inputType = new SqlInputType();
   }
 
   protected abstract <R, C> R accept(ExpressionVisitor<R, C> visitor, C context);
@@ -37,5 +41,13 @@ public abstract class Expression extends Node {
   @Override
   public final String toString() {
     return ExpressionFormatter.formatExpression(this);
+  }
+
+  public final SqlType getInputType() {
+    return inputType.getInputType();
+  }
+
+  public final void setInputType(final SqlType newInputType) {
+    inputType.setInputType(newInputType);
   }
 }

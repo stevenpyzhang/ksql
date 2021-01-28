@@ -39,7 +39,10 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.types.KsqlLambda;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
@@ -183,12 +186,28 @@ public class CodeGenRunner {
     public Void visitFunctionCall(final FunctionCall node, final Void context) {
       final List<SqlType> argumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
+      SqlType inputType = null;
+      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       for (final Expression argExpr : node.getArguments()) {
+        if (argExpr instanceof LambdaFunctionCall) {
+          // We should have already processed the array/map input and stored in in inputType
+          argExpr.setInputType(inputType);
+        }
         process(argExpr, null);
-        argumentTypes.add(expressionTypeManager.getExpressionSqlType(argExpr));
+        SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr);
+        // for lambdas - if we see this it's the  array/map being passed in. We save the type for later
+        try {
+          SqlArray inputArray = (SqlArray) newSqlType;
+          inputType = inputArray.getItemType();
+        } catch (final ClassCastException e) { }
+
+        if (newSqlType == SqlTypes.LAMBDALITERAL && holder.getMetadata().getCategory().equals("STRING")) { //probably need to extend to all function types, if there's one input and nothing else it needs to be the same as the input type
+          newSqlType = SqlTypes.STRING;
+        }
+        argumentTypes.add(newSqlType);
       }
 
-      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
+
       final KsqlScalarFunction function = holder.getFunction(argumentTypes);
       spec.addFunction(
           function.name(),
