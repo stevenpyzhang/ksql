@@ -38,7 +38,7 @@ public final class SqlLambda extends SqlType {
       final SqlType inputType,
       final SqlType returnType
   ) {
-    super(SqlBaseType.LAMBDA);
+    super(SqlBaseType.STRUCT);
     this.inputType = requireNonNull(inputType, "inputType");
     this.returnType = requireNonNull(returnType, "returnType");
   }

@@ -75,6 +75,8 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
+import scala.concurrent.impl.FutureConvertersImpl;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -84,6 +86,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
 
 public class ExpressionTypeManager {
 
@@ -100,13 +104,16 @@ public class ExpressionTypeManager {
 
   public SqlType getExpressionSqlType(final Expression expression) {
     final ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
+    expressionTypeContext.setInputType(expression.getInputType());
     new Visitor().process(expression, expressionTypeContext);
-    return expressionTypeContext.getSqlType();
+    SqlType newSqlType = expressionTypeContext.getSqlType();
+    return newSqlType;
   }
 
   private static class ExpressionTypeContext {
 
     private SqlType sqlType;
+    private SqlType inputType;
 
     SqlType getSqlType() {
       return sqlType;
@@ -114,6 +121,14 @@ public class ExpressionTypeManager {
 
     void setSqlType(final SqlType sqlType) {
       this.sqlType = sqlType;
+    }
+
+    SqlType getInputType() {
+      return inputType;
+    }
+
+    void setInputType(final SqlType inputType) {
+      this.inputType = inputType;
     }
   }
 
@@ -124,12 +139,21 @@ public class ExpressionTypeManager {
         final ArithmeticBinaryExpression node, final ExpressionTypeContext expressionTypeContext
     ) {
       process(node.getLeft(), expressionTypeContext);
-      final SqlType leftType = expressionTypeContext.getSqlType();
+      SqlType leftType = expressionTypeContext.getSqlType();
 
       process(node.getRight(), expressionTypeContext);
-      final SqlType rightType = expressionTypeContext.getSqlType();
-
-      final SqlType resultType = node.getOperator().resultType(leftType, rightType);
+      SqlType rightType = expressionTypeContext.getSqlType();
+      if (expressionTypeContext.getInputType() == null) {
+        expressionTypeContext.setInputType(SqlTypes.LAMBDALITERAL);
+      }
+      final SqlType inputType = expressionTypeContext.getInputType();
+      if (rightType == SqlTypes.LAMBDALITERAL) {
+        rightType = inputType;
+      }
+      if (leftType == SqlTypes.LAMBDALITERAL) {
+        leftType = inputType;
+      }
+      final SqlType resultType = inputType == SqlTypes.LAMBDALITERAL ? inputType : node.getOperator().resultType(leftType, rightType);
 
       expressionTypeContext.setSqlType(resultType);
       return null;
@@ -150,7 +174,7 @@ public class ExpressionTypeManager {
     ) {
       process(node.getBody(), context);
       // TODO: add proper type inference
-      context.setSqlType(SqlLambda.of(SqlTypes.INTEGER, SqlTypes.INTEGER));
+      context.setSqlType(SqlLambda.of(context.getInputType(), context.getSqlType()));
       return null;
     }
 
@@ -160,7 +184,7 @@ public class ExpressionTypeManager {
         final LambdaLiteral node, final ExpressionTypeContext expressionTypeContext
     ) {
       // TODO: add proper type inference
-      expressionTypeContext.setSqlType(SqlTypes.INTEGER);
+      expressionTypeContext.setSqlType(SqlTypes.LAMBDALITERAL);
       return null;
     }
 
@@ -182,10 +206,20 @@ public class ExpressionTypeManager {
     public Void visitComparisonExpression(
         final ComparisonExpression node, final ExpressionTypeContext expressionTypeContext
     ) {
+      final SqlType inputType = expressionTypeContext.getInputType();
+
       process(node.getLeft(), expressionTypeContext);
-      final SqlType leftSchema = expressionTypeContext.getSqlType();
+      SqlType leftSchema = expressionTypeContext.getSqlType();
+
       process(node.getRight(), expressionTypeContext);
-      final SqlType rightSchema = expressionTypeContext.getSqlType();
+      SqlType rightSchema = expressionTypeContext.getSqlType();
+
+      if (rightSchema == SqlTypes.LAMBDALITERAL) {
+        rightSchema = inputType;
+      }
+      if (leftSchema == SqlTypes.LAMBDALITERAL) {
+        leftSchema = inputType;
+      }
       if (!ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema)) {
         throw new KsqlException("Cannot compare "
             + node.getLeft().toString() + " (" + leftSchema.toString() + ") to "
@@ -279,7 +313,7 @@ public class ExpressionTypeManager {
     public Void visitIntegerLiteral(
         final IntegerLiteral node, final ExpressionTypeContext expressionTypeContext
     ) {
-      expressionTypeContext.setSqlType(SqlTypes.INTEGER);
+      expressionTypeContext.setSqlType(INTEGER);
       return null;
     }
 
@@ -479,7 +513,12 @@ public class ExpressionTypeManager {
       final List<SqlType> argTypes = new ArrayList<>();
       for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
-        argTypes.add(expressionTypeContext.getSqlType());
+        SqlType newSqlType = expressionTypeContext.getSqlType();
+        argTypes.add(newSqlType == SqlTypes.LAMBDALITERAL ? expressionTypeContext.getInputType() : newSqlType);
+        if (expression instanceof UnqualifiedColumnReferenceExp) {
+          SqlArray inputArray = (SqlArray) expressionTypeContext.getSqlType();
+          expressionTypeContext.setInputType(inputArray.getItemType());
+        }
       }
 
       final SqlType returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);

@@ -65,7 +65,7 @@ public final class LambdaUtil {
       i++;
       final String javaType = argPair.right.getSimpleName();
       arguments.append(
-          "   " + javaType + " " + argPair.left + " = (" + javaType + ") arg" + i + ";\n");
+          "   final " + javaType + " " + argPair.left + " = (" + javaType + ") arg" + i + ";\n");
     }
     String functionType;
     String functionApply;

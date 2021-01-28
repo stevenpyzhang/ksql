@@ -20,6 +20,8 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,6 +31,7 @@ public class SearchedCaseExpression extends Expression {
 
   private final ImmutableList<WhenClause> whenClauses;
   private final Optional<Expression> defaultValue;
+  //private SqlType inputType;
 
   public SearchedCaseExpression(
       final List<WhenClause> whenClauses,
@@ -44,6 +47,7 @@ public class SearchedCaseExpression extends Expression {
     super(location);
     this.whenClauses = ImmutableList.copyOf(requireNonNull(whenClauses, "whenClauses"));
     this.defaultValue = requireNonNull(defaultValue, "defaultValue");
+    //this.inputType = null;
   }
 
   public List<WhenClause> getWhenClauses() {
@@ -53,6 +57,14 @@ public class SearchedCaseExpression extends Expression {
   public Optional<Expression> getDefaultValue() {
     return defaultValue;
   }
+
+  /*public SqlType getInputType() {
+    return inputType;
+  }
+
+  public SqlType setInputType(final SqlType inputType) {
+    return this.inputType = inputType;
+  }*/
 
   @Override
   public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
