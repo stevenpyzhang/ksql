@@ -43,6 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.Test;
 
 public class OperatorTest {
@@ -95,11 +97,11 @@ public class OperatorTest {
   @Test
   public void shouldWorkUsingSameRulesAsBaseTypeUpCastRules() {
     allOperations().forEach(op -> {
-
-      for (final SqlBaseType leftBaseType : SqlBaseType.values()) {
+      SqlBaseType[] types = SqlBaseType.values();
+      for (final SqlBaseType leftBaseType : types) {
         // Given:
         final Map<Boolean, List<SqlBaseType>> partitioned = Arrays
-            .stream(SqlBaseType.values())
+            .stream(types)
             .collect(Collectors.partitioningBy(
                 rightBaseType -> shouldBeSupported(op, leftBaseType, rightBaseType)));
 

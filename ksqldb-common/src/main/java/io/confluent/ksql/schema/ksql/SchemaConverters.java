@@ -19,6 +19,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
@@ -26,6 +27,7 @@ import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
@@ -35,6 +37,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -278,7 +281,7 @@ public final class SchemaConverters {
             .put(SqlBaseType.MAP, t -> ConnectFromSqlConverter.fromSqlMap((SqlMap) t))
             .put(SqlBaseType.STRUCT, t -> ConnectFromSqlConverter.fromSqlStruct((SqlStruct) t))
             .put(SqlBaseType.TIMESTAMP, t -> Timestamp.builder().optional())
-        .build();
+            .build();
 
     @Override
     public Schema toConnectSchema(final SqlType type) {
@@ -343,6 +346,7 @@ public final class SchemaConverters {
         .put(Map.class, SqlBaseType.MAP)
         .put(Struct.class, SqlBaseType.STRUCT)
         .put(java.sql.Timestamp.class, SqlBaseType.TIMESTAMP)
+        .put(SqlLambda.class, SqlBaseType.LAMBDA)
         .build();
 
     @Override
@@ -381,6 +385,7 @@ public final class SchemaConverters {
             .put(ParamTypes.LONG, SqlTypes.BIGINT)
             .put(ParamTypes.DOUBLE, SqlTypes.DOUBLE)
             .put(ParamTypes.TIMESTAMP, SqlTypes.TIMESTAMP)
+            .put(ParamTypes.LAMBDALITERAL, SqlTypes.LAMBDALITERAL)
             .build();
 
     @Override
@@ -423,6 +428,7 @@ public final class SchemaConverters {
             .put(ParamTypes.DOUBLE, SqlBaseType.DOUBLE)
             .put(ParamTypes.DECIMAL, SqlBaseType.DECIMAL)
             .put(ParamTypes.TIMESTAMP, SqlBaseType.TIMESTAMP)
+            .put(ParamTypes.LAMBDALITERAL, SqlBaseType.LAMBDA)
             .build();
 
     @Override
@@ -442,6 +448,10 @@ public final class SchemaConverters {
 
       if (paramType instanceof StructType) {
         return SqlBaseType.STRUCT;
+      }
+
+      if (paramType instanceof LambdaType) {
+        return SqlBaseType.LAMBDA;
       }
 
       throw new KsqlException("Cannot convert param type to sql type: " + paramType);
@@ -481,8 +491,19 @@ public final class SchemaConverters {
         return builder.build();
       }
 
+      if (sqlType.baseType() == SqlBaseType.LAMBDA) {
+        final SqlLambda sqlLambda = (SqlLambda) sqlType;
+        final List<ParamType> inputParamTypes = new ArrayList<>();
+        for (final SqlType type: sqlLambda.getInputType()) {
+          inputParamTypes.add(toFunctionType(type));
+        }
+        return LambdaType.of(
+            inputParamTypes,
+            toFunctionType(sqlLambda.getReturnType())
+        );
+      }
+
       throw new KsqlException("Cannot convert sql type to param type: " + sqlType);
     }
   }
-
 }

@@ -15,22 +15,20 @@
 
 package io.confluent.ksql.function.types;
 
-import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
 public final class LambdaType extends ObjectType {
 
-  private final ImmutableList<ParamType> inputTypes;
+  private final List<ParamType> inputTypes;
   private final ParamType returnType;
 
   private LambdaType(
       final List<ParamType> inputTypes,
       final ParamType returnType
   ) {
-    this.inputTypes = ImmutableList.copyOf(
-        Objects.requireNonNull(inputTypes, "inputTypes"));
-    this.returnType = Objects.requireNonNull(returnType, "returnType");
+    this.inputTypes = inputTypes;
+    this.returnType = returnType;
   }
 
   public static LambdaType of(

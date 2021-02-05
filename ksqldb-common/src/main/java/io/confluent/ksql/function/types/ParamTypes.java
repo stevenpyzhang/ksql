@@ -38,6 +38,7 @@ public final class ParamTypes {
   public static final LongType LONG = LongType.INSTANCE;
   public static final ParamType DECIMAL = DecimalType.INSTANCE;
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
+  public static final LambdaType LAMBDALITERAL = LambdaType.of(null, null);
 
   public static boolean areCompatible(final SqlType actual, final ParamType declared) {
     return areCompatible(actual, declared, false);

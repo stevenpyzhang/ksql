@@ -35,6 +35,7 @@ import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -44,6 +45,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,6 +53,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -105,6 +109,7 @@ public class SchemaConvertersTest {
       .put(SqlBaseType.MAP, Map.class)
       .put(SqlBaseType.STRUCT, Struct.class)
       .put(SqlBaseType.TIMESTAMP, Timestamp.class)
+      .put(SqlBaseType.LAMBDA, SqlLambda.class)
       .build();
 
   private static final BiMap<SqlType, ParamType> SQL_TO_FUNCTION = ImmutableBiMap
@@ -115,6 +120,7 @@ public class SchemaConvertersTest {
       .put(SqlTypes.DOUBLE, ParamTypes.DOUBLE)
       .put(SqlTypes.STRING, ParamTypes.STRING)
       .put(SqlTypes.TIMESTAMP, ParamTypes.TIMESTAMP)
+      .put(SqlTypes.LAMBDALITERAL, ParamTypes.LAMBDALITERAL)
       .put(SqlArray.of(SqlTypes.INTEGER), ArrayType.of(ParamTypes.INTEGER))
       .put(SqlDecimal.of(2, 1), ParamTypes.DECIMAL)
       .put(
@@ -162,8 +168,7 @@ public class SchemaConvertersTest {
         .map(SqlType::baseType)
         .collect(Collectors.toSet());
 
-    final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(SqlBaseType.values());
-
+    final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(ArrayUtils.removeElement(SqlBaseType.values(), SqlBaseType.LAMBDA));
     assertThat("If this test fails then there has been a new SQL type added and this test "
         + "file needs updating to cover that new type", tested, is(allTypes));
   }

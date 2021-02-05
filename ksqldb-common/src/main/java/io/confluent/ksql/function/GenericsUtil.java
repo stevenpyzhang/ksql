@@ -20,11 +20,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -34,6 +36,7 @@ import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -76,6 +79,14 @@ public final class GenericsUtil {
           .collect(Collectors.toSet());
     } else if (type instanceof GenericType) {
       return ImmutableSet.of(type);
+    } else if (type instanceof LambdaType) {
+      final Set<ParamType> inputSet = new HashSet<>();
+      for (final ParamType paramType: ((LambdaType) type).inputTypes()) {
+        inputSet.addAll(constituentGenerics(paramType));
+      }
+      return Sets.union(
+          inputSet,
+          constituentGenerics(((LambdaType) type).returnType()));
     } else {
       return ImmutableSet.of();
     }
@@ -122,6 +133,16 @@ public final class GenericsUtil {
       return struct.build();
     }
 
+    if (schema instanceof LambdaType) {
+      final LambdaType lambdaType = (LambdaType) schema;
+      final List<SqlType> inputTypes = new ArrayList<>();
+      for (final ParamType paramType: lambdaType.inputTypes()) {
+        inputTypes.add(applyResolved(paramType, resolved));
+      }
+      final SqlType returnType = applyResolved(lambdaType.returnType(), resolved);
+      return SqlLambda.of(inputTypes, returnType);
+    }
+
     if (schema instanceof GenericType) {
       final SqlType instance = resolved.get(schema);
       if (instance == null) {
@@ -152,7 +173,7 @@ public final class GenericsUtil {
     if (!success) {
       throw new KsqlException(
           String.format("Cannot infer generics for %s from %s because "
-              + "they do not have the same schema structure.",
+                  + "they do not have the same schema structure.",
               schema,
               instance));
     }
@@ -172,6 +193,7 @@ public final class GenericsUtil {
     return ImmutableMap.copyOf(mapping);
   }
 
+  @SuppressWarnings({"NPathComplexity", "CyclomaticComplexity"})
   private static boolean resolveGenerics(
       final List<Entry<GenericType, SqlType>> mapping,
       final ParamType schema,
@@ -204,6 +226,26 @@ public final class GenericsUtil {
       final MapType mapType = (MapType) schema;
       return resolveGenerics(mapping, mapType.key(), sqlMap.getKeyType())
           && resolveGenerics(mapping, mapType.value(), sqlMap.getValueType());
+    }
+
+    if (schema instanceof LambdaType) {
+      final SqlLambda sqlLambda = (SqlLambda) instance;
+      final LambdaType lambdaType = (LambdaType) schema;
+      boolean resolvedInputs = true;
+      if (sqlLambda.getInputType().size() != lambdaType.inputTypes().size()) {
+        throw new KsqlException(
+            "Number of lambda arguments don't match between schema and sql type");
+      }
+
+      int i = 0;
+      for (final ParamType paramType: lambdaType.inputTypes()) {
+        resolvedInputs =
+            resolvedInputs && resolveGenerics(
+                mapping, paramType, sqlLambda.getInputType().get(i));
+        i++;
+      }
+      return resolvedInputs
+          && resolveGenerics(mapping, lambdaType.returnType(), sqlLambda.getReturnType());
     }
 
     if (schema instanceof StructType) {
