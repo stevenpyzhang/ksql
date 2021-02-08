@@ -13,19 +13,27 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.codegen.helpers;
+package io.confluent.ksql.schema.ksql;
 
-import java.util.Objects;
-import java.util.function.Function;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 
-@FunctionalInterface
-public interface TriFunction<A,B,C,R> {
+public class SqlArgument {
 
-  R apply(A a, B b, C c);
+  private final SqlType sqlType;
+  private final SqlLambda sqlLambda;
 
-  default <V> TriFunction<A, B, C, V> andThen(
-      Function<? super R, ? extends V> after) {
-    Objects.requireNonNull(after);
-    return (A a, B b, C c) -> after.apply(apply(a, b, c));
+  public SqlArgument(final SqlType type, final SqlLambda lambda) {
+    sqlType = type;
+    sqlLambda = lambda;
   }
+
+  public SqlType getSqlType() {
+    return sqlType;
+  }
+
+  public SqlLambda getSqlLambda() {
+    return sqlLambda;
+  }
+
 }

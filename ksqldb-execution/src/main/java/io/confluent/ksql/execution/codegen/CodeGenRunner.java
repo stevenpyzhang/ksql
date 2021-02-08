@@ -39,14 +39,21 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -108,8 +115,8 @@ public class CodeGenRunner {
 
   public CodeGenSpec getCodeGenSpec(final Expression expression) {
     final Visitor visitor = new Visitor();
-
-    visitor.process(expression, null);
+    final CodeGenTypeContext context = new CodeGenTypeContext();
+    visitor.process(expression, context);
     return visitor.spec.build();
   }
 
@@ -139,9 +146,11 @@ public class CodeGenRunner {
 
       return new ExpressionMetadata(ee, spec, returnType, expression);
     } catch (KsqlException | CompileException e) {
+      e.printStackTrace();
       throw new KsqlException("Invalid " + type + ": " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);
     } catch (final Exception e) {
+      e.printStackTrace();
       throw new RuntimeException("Unexpected error generating code for " + type
           + ". expression:" + expression, e);
     }
@@ -164,7 +173,34 @@ public class CodeGenRunner {
     return ee;
   }
 
-  private final class Visitor extends TraversalExpressionVisitor<Void> {
+  private static class CodeGenTypeContext {
+
+    private List<SqlType> inputTypes = new ArrayList<>();
+    private Map<String, SqlType> lambdaTypeMapping = new HashMap<>();
+
+    List<SqlType> getInputTypes() {
+      if (inputTypes.size() == 0) {
+        return null;
+      }
+      return inputTypes;
+    }
+
+    void addInputType(final SqlType inputType) {
+      this.inputTypes.add(inputType);
+    }
+
+    void mapInputTypes(final List<String> argumentList){
+      for (int i = 0; i < argumentList.size(); i++) {
+        this.lambdaTypeMapping.putIfAbsent(argumentList.get(i), inputTypes.get(i));
+      }
+    }
+
+    Map<String, SqlType> getLambdaTypeMapping(){
+      return this.lambdaTypeMapping;
+    }
+  }
+
+  private final class Visitor extends TraversalExpressionVisitor<CodeGenTypeContext> {
 
     private final CodeGenSpec.Builder spec;
 
@@ -173,23 +209,43 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitLikePredicate(final LikePredicate node, final Void context) {
-      process(node.getValue(), null);
-      process(node.getPattern(), null);
+    public Void visitLikePredicate(final LikePredicate node, final CodeGenTypeContext context) {
+      process(node.getValue(), context);
+      process(node.getPattern(), context);
       return null;
     }
 
     @Override
-    public Void visitFunctionCall(final FunctionCall node, final Void context) {
-      final List<SqlType> argumentTypes = new ArrayList<>();
+    public Void visitFunctionCall(final FunctionCall node, final CodeGenTypeContext context) {
+      final List<SqlArgument> newArgumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
+      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       for (final Expression argExpr : node.getArguments()) {
-        process(argExpr, null);
-        argumentTypes.add(expressionTypeManager.getExpressionSqlType(argExpr));
+        process(argExpr, context);
+        SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context.getLambdaTypeMapping(), context.getInputTypes());
+        // for lambdas - if we see this it's the  array/map being passed in. We save the type for later
+        if (shouldSetInputType(node, context)) {
+          if (newSqlType instanceof SqlArray) {
+            SqlArray inputArray = (SqlArray) newSqlType;
+            context.addInputType(inputArray.getItemType());
+          } else if (newSqlType instanceof SqlMap) {
+            SqlMap inputMap = (SqlMap) newSqlType;
+            context.addInputType(inputMap.getKeyType());
+            context.addInputType(inputMap.getValueType());
+          } else {
+            context.addInputType(newSqlType);
+          }
+        }
+
+        if (argExpr instanceof LambdaFunctionCall) {
+          newArgumentTypes.add(new SqlArgument(null, SqlLambda.of(context.getInputTypes(), newSqlType)));
+
+        } else {
+          newArgumentTypes.add(new SqlArgument(newSqlType, null));
+        }
       }
 
-      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
-      final KsqlScalarFunction function = holder.getFunction(argumentTypes);
+      final KsqlScalarFunction function = holder.getUdfFunction(newArgumentTypes);
       spec.addFunction(
           function.name(),
           function.newInstance(ksqlConfig)
@@ -199,7 +255,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitSubscriptExpression(final SubscriptExpression node, final Void context) {
+    public Void visitSubscriptExpression(final SubscriptExpression node, final CodeGenTypeContext context) {
       if (node.getBase() instanceof UnqualifiedColumnReferenceExp) {
         final UnqualifiedColumnReferenceExp arrayBaseName
             = (UnqualifiedColumnReferenceExp) node.getBase();
@@ -212,13 +268,13 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitCreateArrayExpression(final CreateArrayExpression exp, final Void context) {
+    public Void visitCreateArrayExpression(final CreateArrayExpression exp, final CodeGenTypeContext context) {
       exp.getValues().forEach(val -> process(val, context));
       return null;
     }
 
     @Override
-    public Void visitCreateMapExpression(final CreateMapExpression exp, final Void context) {
+    public Void visitCreateMapExpression(final CreateMapExpression exp, final CodeGenTypeContext context) {
       for (Entry<Expression, Expression> entry : exp.getMap().entrySet()) {
         process(entry.getKey(), context);
         process(entry.getValue(), context);
@@ -229,7 +285,7 @@ public class CodeGenRunner {
     @Override
     public Void visitStructExpression(
         final CreateStructExpression exp,
-        final Void context
+        final CodeGenTypeContext context
     ) {
       exp.getFields().forEach(val -> process(val.getValue(), context));
       final Schema schema = SchemaConverters
@@ -243,21 +299,22 @@ public class CodeGenRunner {
     @Override
     public Void visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node,
-        final Void context
+        final CodeGenTypeContext context
     ) {
       addRequiredColumn(node.getColumnName());
       return null;
     }
 
     @Override
-    public Void visitDereferenceExpression(final DereferenceExpression node, final Void context) {
-      process(node.getBase(), null);
+    public Void visitDereferenceExpression(final DereferenceExpression node, final CodeGenTypeContext context) {
+      process(node.getBase(), context);
       return null;
     }
 
     @Override
-    public Void visitLambdaExpression(final LambdaFunctionCall node, final Void context) {
-      process(node.getBody(), null);
+    public Void visitLambdaExpression(final LambdaFunctionCall node, final CodeGenTypeContext context) {
+      context.mapInputTypes(node.getArguments());
+      process(node.getBody(), context);
       return null;
     }
 
@@ -273,6 +330,12 @@ public class CodeGenRunner {
           SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(column.type()),
           column.index()
       );
+    }
+
+    private Boolean shouldSetInputType(final FunctionCall node, final CodeGenTypeContext context) {
+      return (context.getInputTypes() == null)
+          || (node.getName().equals(FunctionName.of("REDUCE_MAP")) && context.getInputTypes().size() == 2)
+          || (node.getName().equals(FunctionName.of("REDUCE_ARRAY")) && context.getInputTypes().size() == 1);
     }
   }
 }

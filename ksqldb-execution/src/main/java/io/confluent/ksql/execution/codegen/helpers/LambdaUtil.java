@@ -29,7 +29,7 @@ public final class LambdaUtil {
 
   private LambdaUtil() {
   }
-
+  
   /**
    * Generate code to build a {@link java.util.function.Function}.
    *
@@ -82,7 +82,7 @@ public final class LambdaUtil {
     } else {
       throw new KsqlException("Unsupported number of lambda arguments.");
     }
-    
+
     final String function =  "new " + functionType + " {\n"
         + " @Override\n"
         + functionApply

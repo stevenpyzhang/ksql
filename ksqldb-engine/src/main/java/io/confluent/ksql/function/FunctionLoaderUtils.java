@@ -18,6 +18,7 @@ package io.confluent.ksql.function;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.Udf;
@@ -25,6 +26,7 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -32,6 +34,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -177,14 +180,24 @@ public final class FunctionLoaderUtils {
       final Map<GenericType, SqlType> genericMapping = new HashMap<>();
       for (int i = 0; i < Math.min(parameters.size(), arguments.size()); i++) {
         final ParamType schema = parameters.get(i);
+        if (schema instanceof LambdaType) {
+          List<SqlType> types = new ArrayList<>();
+          final int last = arguments.size() - 1;
+          for (int j = 0; j < last; j++) {
+            types.add(arguments.get(j));
+          }
+          SqlLambda sqlLambda = SqlLambda.of(types, arguments.get(last));
+          genericMapping.putAll(GenericsUtil.resolveLambdaGenerics(schema, sqlLambda));
+        } else {
+          // we resolve any variadic as if it were an array so that the type
+          // structure matches the input type
+          final SqlType instance = isVariadic && i == parameters.size() - 1
+              ? SqlTypes.array(arguments.get(i))
+              : arguments.get(i);
 
-        // we resolve any variadic as if it were an array so that the type
-        // structure matches the input type
-        final SqlType instance = isVariadic && i == parameters.size() - 1
-            ? SqlTypes.array(arguments.get(i))
-            : arguments.get(i);
+          genericMapping.putAll(GenericsUtil.resolveGenerics(schema, instance));
+        }
 
-        genericMapping.putAll(GenericsUtil.resolveGenerics(schema, instance));
       }
 
       return GenericsUtil.applyResolved(javaReturnSchema, genericMapping);
