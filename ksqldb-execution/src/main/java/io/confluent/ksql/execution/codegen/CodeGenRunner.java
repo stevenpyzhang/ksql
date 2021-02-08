@@ -115,7 +115,7 @@ public class CodeGenRunner {
 
   public CodeGenSpec getCodeGenSpec(final Expression expression) {
     final Visitor visitor = new Visitor();
-    final CodeGenTypeContext context = new CodeGenTypeContext();
+    final TypeContext context = new TypeContext();
     visitor.process(expression, context);
     return visitor.spec.build();
   }
@@ -197,7 +197,7 @@ public class CodeGenRunner {
         process(argExpr, context);
         SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context.getLambdaTypeMapping(), context.getInputTypes());
         // for lambdas - if we see this it's the  array/map being passed in. We save the type for later
-        if (shouldSetInputType(node, context)) {
+        if (context.notAllInputsSeen()) {
           if (newSqlType instanceof SqlArray) {
             SqlArray inputArray = (SqlArray) newSqlType;
             context.addInputType(inputArray.getItemType());

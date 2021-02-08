@@ -78,7 +78,6 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.function.KsqlFunction;
-import io.confluent.ksql.function.TriFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.ParamType;
@@ -231,7 +230,7 @@ public class SqlToJavaVisitor {
   }
 
   private String formatExpression(final Expression expression) {
-    final SqlToJavaTypeContext context = new SqlToJavaTypeContext();
+    final TypeContext context = new TypeContext();
     final Pair<String, SqlType> expressionFormatterResult =
         new Formatter(functionRegistry).process(expression, context);
     return expressionFormatterResult.getLeft();
@@ -455,7 +454,7 @@ public class SqlToJavaVisitor {
       for (final Expression argExpr : node.getArguments()) {
         SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context.getLambdaTypeMapping(), context.getInputTypes());
         // for lambdas: if it's the  array/map being passed in we save the type for later
-        if (shouldSetInputType(node, context)) {
+        if (context.notAllInputsSeen()) {
           if (newSqlType instanceof SqlArray) {
             SqlArray inputArray = (SqlArray) newSqlType;
             context.addInputType(inputArray.getItemType());

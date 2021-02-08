@@ -27,6 +27,7 @@ import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -183,7 +184,14 @@ public final class FunctionLoaderUtils {
         if (schema instanceof LambdaType) {
           List<SqlType> types = new ArrayList<>();
           final int last = arguments.size() - 1;
-          for (int j = 0; j < last; j++) {
+          int numArgs = ((LambdaType) schema).inputTypes().size();
+          for (int j = 0; j < numArgs; j++) {
+            if (arguments.get(j) instanceof SqlMap) {
+              types.add(((SqlMap) arguments.get(j)).getKeyType());
+              types.add(((SqlMap) arguments.get(j)).getValueType());
+              numArgs--;
+              continue;
+            }
             types.add(arguments.get(j));
           }
           SqlLambda sqlLambda = SqlLambda.of(types, arguments.get(last));

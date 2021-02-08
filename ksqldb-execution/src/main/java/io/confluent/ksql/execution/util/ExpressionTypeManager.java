@@ -110,7 +110,7 @@ public class ExpressionTypeManager {
   public SqlType getExpressionSqlType(
       final Expression expression, final Map<String, SqlType> inputMapping, final List<SqlType> inputTypes
   ) {
-    final ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
+    final TypeContext expressionTypeContext = new TypeContext();
     expressionTypeContext.setLambdaTypes(inputMapping);
     expressionTypeContext.setInputTypes(inputTypes);
     new Visitor().process(expression, expressionTypeContext);
