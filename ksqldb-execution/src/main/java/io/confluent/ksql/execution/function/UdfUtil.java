@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 public final class UdfUtil {
 

@@ -39,14 +39,21 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -108,8 +115,8 @@ public class CodeGenRunner {
 
   public CodeGenSpec getCodeGenSpec(final Expression expression) {
     final Visitor visitor = new Visitor();
-
-    visitor.process(expression, null);
+    final CodeGenTypeContext context = new CodeGenTypeContext();
+    visitor.process(expression, context);
     return visitor.spec.build();
   }
 
@@ -139,9 +146,11 @@ public class CodeGenRunner {
 
       return new ExpressionMetadata(ee, spec, returnType, expression);
     } catch (KsqlException | CompileException e) {
+      e.printStackTrace();
       throw new KsqlException("Invalid " + type + ": " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);
     } catch (final Exception e) {
+      e.printStackTrace();
       throw new RuntimeException("Unexpected error generating code for " + type
           + ". expression:" + expression, e);
     }
@@ -181,15 +190,35 @@ public class CodeGenRunner {
 
     @Override
     public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
-      final List<SqlType> argumentTypes = new ArrayList<>();
+      final List<SqlArgument> newArgumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
+      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       for (final Expression argExpr : node.getArguments()) {
-        process(argExpr, null);
-        argumentTypes.add(expressionTypeManager.getExpressionSqlType(argExpr));
+        process(argExpr, context);
+        SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context.getLambdaTypeMapping(), context.getInputTypes());
+        // for lambdas - if we see this it's the  array/map being passed in. We save the type for later
+        if (shouldSetInputType(node, context)) {
+          if (newSqlType instanceof SqlArray) {
+            SqlArray inputArray = (SqlArray) newSqlType;
+            context.addInputType(inputArray.getItemType());
+          } else if (newSqlType instanceof SqlMap) {
+            SqlMap inputMap = (SqlMap) newSqlType;
+            context.addInputType(inputMap.getKeyType());
+            context.addInputType(inputMap.getValueType());
+          } else {
+            context.addInputType(newSqlType);
+          }
+        }
+
+        if (argExpr instanceof LambdaFunctionCall) {
+          newArgumentTypes.add(new SqlArgument(null, SqlLambda.of(context.getInputTypes(), newSqlType)));
+
+        } else {
+          newArgumentTypes.add(new SqlArgument(newSqlType, null));
+        }
       }
 
-      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
-      final KsqlScalarFunction function = holder.getFunction(argumentTypes);
+      final KsqlScalarFunction function = holder.getUdfFunction(newArgumentTypes);
       spec.addFunction(
           function.name(),
           function.newInstance(ksqlConfig)
