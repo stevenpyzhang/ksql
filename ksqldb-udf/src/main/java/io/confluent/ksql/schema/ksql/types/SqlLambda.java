@@ -22,6 +22,10 @@ import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * An internal object to track the input types and return types for a lambda
+ * argument that's seen as an argument inside of a UDF.
+ */
 @Immutable
 public final class SqlLambda {
 

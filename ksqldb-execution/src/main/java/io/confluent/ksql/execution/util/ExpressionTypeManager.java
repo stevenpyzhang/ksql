@@ -79,6 +79,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,10 +101,7 @@ public class ExpressionTypeManager {
   }
 
   public SqlType getExpressionSqlType(final Expression expression) {
-    final ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
-    new Visitor().process(expression, expressionTypeContext);
-    final SqlType newSqlType = expressionTypeContext.getSqlType();
-    return newSqlType;
+    return getExpressionSqlType(expression, Collections.emptyMap(), Collections.emptyList());
   }
 
   public SqlType getExpressionSqlType(
@@ -147,6 +145,13 @@ public class ExpressionTypeManager {
       }
     }
     void mapInputTypes(final List<String> argumentList){
+      if (inputTypes.size() != argumentList.size()) {
+        throw new IllegalArgumentException("Was expecting " +
+            inputTypes.size() +
+            " arguments but found " +
+            argumentList.size() + "," + argumentList +
+            ". Check your lambda statement.");
+      }
       for (int i = 0; i < inputTypes.size(); i++) {
         this.lambdaTypeMapping.putIfAbsent(argumentList.get(i), inputTypes.get(i));
       }

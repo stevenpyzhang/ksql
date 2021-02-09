@@ -115,7 +115,7 @@ public class CodeGenRunner {
 
   public CodeGenSpec getCodeGenSpec(final Expression expression) {
     final Visitor visitor = new Visitor();
-    final CodeGenTypeContext context = new CodeGenTypeContext();
+    final TypeContext context = new TypeContext();
     visitor.process(expression, context);
     return visitor.spec.build();
   }
@@ -173,34 +173,7 @@ public class CodeGenRunner {
     return ee;
   }
 
-  private static class CodeGenTypeContext {
-
-    private List<SqlType> inputTypes = new ArrayList<>();
-    private Map<String, SqlType> lambdaTypeMapping = new HashMap<>();
-
-    List<SqlType> getInputTypes() {
-      if (inputTypes.size() == 0) {
-        return null;
-      }
-      return inputTypes;
-    }
-
-    void addInputType(final SqlType inputType) {
-      this.inputTypes.add(inputType);
-    }
-
-    void mapInputTypes(final List<String> argumentList){
-      for (int i = 0; i < argumentList.size(); i++) {
-        this.lambdaTypeMapping.putIfAbsent(argumentList.get(i), inputTypes.get(i));
-      }
-    }
-
-    Map<String, SqlType> getLambdaTypeMapping(){
-      return this.lambdaTypeMapping;
-    }
-  }
-
-  private final class Visitor extends TraversalExpressionVisitor<CodeGenTypeContext> {
+  private final class Visitor extends TraversalExpressionVisitor<TypeContext> {
 
     private final CodeGenSpec.Builder spec;
 
@@ -209,14 +182,14 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitLikePredicate(final LikePredicate node, final CodeGenTypeContext context) {
+    public Void visitLikePredicate(final LikePredicate node, final TypeContext context) {
       process(node.getValue(), context);
       process(node.getPattern(), context);
       return null;
     }
 
     @Override
-    public Void visitFunctionCall(final FunctionCall node, final CodeGenTypeContext context) {
+    public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
       final List<SqlArgument> newArgumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
@@ -255,7 +228,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitSubscriptExpression(final SubscriptExpression node, final CodeGenTypeContext context) {
+    public Void visitSubscriptExpression(final SubscriptExpression node, final TypeContext context) {
       if (node.getBase() instanceof UnqualifiedColumnReferenceExp) {
         final UnqualifiedColumnReferenceExp arrayBaseName
             = (UnqualifiedColumnReferenceExp) node.getBase();
@@ -268,13 +241,13 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitCreateArrayExpression(final CreateArrayExpression exp, final CodeGenTypeContext context) {
+    public Void visitCreateArrayExpression(final CreateArrayExpression exp, final TypeContext context) {
       exp.getValues().forEach(val -> process(val, context));
       return null;
     }
 
     @Override
-    public Void visitCreateMapExpression(final CreateMapExpression exp, final CodeGenTypeContext context) {
+    public Void visitCreateMapExpression(final CreateMapExpression exp, final TypeContext context) {
       for (Entry<Expression, Expression> entry : exp.getMap().entrySet()) {
         process(entry.getKey(), context);
         process(entry.getValue(), context);
@@ -285,7 +258,7 @@ public class CodeGenRunner {
     @Override
     public Void visitStructExpression(
         final CreateStructExpression exp,
-        final CodeGenTypeContext context
+        final TypeContext context
     ) {
       exp.getFields().forEach(val -> process(val.getValue(), context));
       final Schema schema = SchemaConverters
@@ -299,20 +272,20 @@ public class CodeGenRunner {
     @Override
     public Void visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node,
-        final CodeGenTypeContext context
+        final TypeContext context
     ) {
       addRequiredColumn(node.getColumnName());
       return null;
     }
 
     @Override
-    public Void visitDereferenceExpression(final DereferenceExpression node, final CodeGenTypeContext context) {
+    public Void visitDereferenceExpression(final DereferenceExpression node, final TypeContext context) {
       process(node.getBase(), context);
       return null;
     }
 
     @Override
-    public Void visitLambdaExpression(final LambdaFunctionCall node, final CodeGenTypeContext context) {
+    public Void visitLambdaExpression(final LambdaFunctionCall node, final TypeContext context) {
       context.mapInputTypes(node.getArguments());
       process(node.getBody(), context);
       return null;
@@ -332,7 +305,7 @@ public class CodeGenRunner {
       );
     }
 
-    private Boolean shouldSetInputType(final FunctionCall node, final CodeGenTypeContext context) {
+    private Boolean shouldSetInputType(final FunctionCall node, final TypeContext context) {
       return (context.getInputTypes() == null)
           || (node.getName().equals(FunctionName.of("MAP_REDUCE")) && context.getInputTypes().size() == 2)
           || (node.getName().equals(FunctionName.of("ARRAY_REDUCE")) && context.getInputTypes().size() == 1);

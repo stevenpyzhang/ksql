@@ -18,6 +18,11 @@ package io.confluent.ksql.schema.ksql;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 
+/**
+ * A wrapper class to bundle SqlTypes and SqlLambdas for UDF functions that contain
+ * lambdas as an argument. This class allows us to properly find the matching UDF and
+ * resolve the return type for lambda UDFs based on the given sqlLambda.
+ */
 public class SqlArgument {
 
   private final SqlType sqlType;
