@@ -126,7 +126,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   }
 
   @VisibleForTesting
-  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+    // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   StreamedQueryResource(
       // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
       final KsqlEngine ksqlEngine,
@@ -181,23 +181,16 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<Boolean> isInternalRequest,
       final KsqlMediaType mediaType
   ) {
-    EndpointResponse response = null;
-    try {
-      throwIfNotConfigured();
-      activenessRegistrar.updateLastRequestTime();
+    throwIfNotConfigured();
+    activenessRegistrar.updateLastRequestTime();
 
-      final PreparedStatement<?> statement = parseStatement(request);
+    final PreparedStatement<?> statement = parseStatement(request);
 
-      CommandStoreUtil.httpWaitForCommandSequenceNumber(
-          commandQueue, request, commandQueueCatchupTimeout);
+    CommandStoreUtil.httpWaitForCommandSequenceNumber(
+        commandQueue, request, commandQueueCatchupTimeout);
 
-      response = handleStatement(securityContext, request, statement, connectionClosedFuture,
-          isInternalRequest, mediaType);
-    } catch (final Exception e) {
-      e.printStackTrace();
-      throw e;
-    }
-    return response;
+    return handleStatement(securityContext, request, statement, connectionClosedFuture,
+        isInternalRequest, mediaType);
   }
 
   private void throwIfNotConfigured() {
@@ -400,8 +393,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final String reverseSuggestion = possibleAlternatives.isEmpty()
           ? ""
           : possibleAlternatives.stream()
-              .map(name -> "\tprint " + name + ";")
-              .collect(Collectors.joining(
+          .map(name -> "\tprint " + name + ";")
+          .collect(Collectors.joining(
               System.lineSeparator(),
               System.lineSeparator() + "Did you mean:" + System.lineSeparator(),
               ""

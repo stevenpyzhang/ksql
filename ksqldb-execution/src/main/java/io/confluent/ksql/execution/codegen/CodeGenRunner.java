@@ -183,8 +183,8 @@ public class CodeGenRunner {
 
     @Override
     public Void visitLikePredicate(final LikePredicate node, final TypeContext context) {
-      process(node.getValue(), null);
-      process(node.getPattern(), null);
+      process(node.getValue(), context);
+      process(node.getPattern(), context);
       return null;
     }
 
@@ -286,13 +286,13 @@ public class CodeGenRunner {
     public Void visitDereferenceExpression(
         final DereferenceExpression node, final TypeContext context
     ) {
-      process(node.getBase(), null);
+      process(node.getBase(), context);
       return null;
     }
 
     @Override
     public Void visitLambdaExpression(final LambdaFunctionCall node, final TypeContext context) {
-      process(node.getBody(), null);
+      process(node.getBody(), context);
       return null;
     }
 

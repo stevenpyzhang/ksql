@@ -1096,7 +1096,7 @@ public class SqlToJavaVisitor {
     ) {
       return CastEvaluator.generateCode(exp.left, exp.right, sqlType, ksqlConfig);
     }
-  }
+}
 
   private static final class CaseWhenProcessed {
 
