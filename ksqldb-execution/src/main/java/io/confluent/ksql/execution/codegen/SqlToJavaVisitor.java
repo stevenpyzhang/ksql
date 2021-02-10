@@ -368,7 +368,7 @@ public class SqlToJavaVisitor {
     public Pair<String, SqlType> visitLambdaExpression(
         final LambdaFunctionCall exp, final TypeContext context) {
 
-      context.mapInputTypes(exp.getArguments());
+      context.mapLambdaInputTypes(exp.getArguments());
 
       final Pair<String, SqlType> lambdaBody = process(exp.getBody(), context);
 
@@ -457,17 +457,17 @@ public class SqlToJavaVisitor {
         if (context.notAllInputsSeen()) {
           if (newSqlType instanceof SqlArray) {
             SqlArray inputArray = (SqlArray) newSqlType;
-            context.addInputType(inputArray.getItemType());
+            context.addLambdaInputType(inputArray.getItemType());
           } else if (newSqlType instanceof SqlMap) {
             SqlMap inputMap = (SqlMap) newSqlType;
-            context.addInputType(inputMap.getKeyType());
-            context.addInputType(inputMap.getValueType());
+            context.addLambdaInputType(inputMap.getKeyType());
+            context.addLambdaInputType(inputMap.getValueType());
           } else {
-            context.addInputType(newSqlType);
+            context.addLambdaInputType(newSqlType);
           }
         }
         if (argExpr instanceof LambdaFunctionCall) {
-          newArgumentSchemas.add(new SqlArgument(null, SqlLambda.of(context.getInputTypes(), newSqlType)));
+          newArgumentSchemas.add(new SqlArgument(null, SqlLambda.of(context.getLambdaInputTypes(), newSqlType)));
         } else {
           newArgumentSchemas.add(new SqlArgument(newSqlType, null));
         }

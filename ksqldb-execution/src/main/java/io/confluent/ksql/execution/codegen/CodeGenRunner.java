@@ -198,18 +198,18 @@ public class CodeGenRunner {
         if (context.notAllInputsSeen()) {
           if (newSqlType instanceof SqlArray) {
             SqlArray inputArray = (SqlArray) newSqlType;
-            context.addInputType(inputArray.getItemType());
+            context.addLambdaInputType(inputArray.getItemType());
           } else if (newSqlType instanceof SqlMap) {
             SqlMap inputMap = (SqlMap) newSqlType;
-            context.addInputType(inputMap.getKeyType());
-            context.addInputType(inputMap.getValueType());
+            context.addLambdaInputType(inputMap.getKeyType());
+            context.addLambdaInputType(inputMap.getValueType());
           } else {
-            context.addInputType(newSqlType);
+            context.addLambdaInputType(newSqlType);
           }
         }
 
         if (argExpr instanceof LambdaFunctionCall) {
-          newArgumentTypes.add(new SqlArgument(null, SqlLambda.of(context.getInputTypes(), newSqlType)));
+          newArgumentTypes.add(new SqlArgument(null, SqlLambda.of(context.getLambdaInputTypes(), newSqlType)));
 
         } else {
           newArgumentTypes.add(new SqlArgument(newSqlType, null));
@@ -284,7 +284,7 @@ public class CodeGenRunner {
 
     @Override
     public Void visitLambdaExpression(final LambdaFunctionCall node, final TypeContext context) {
-      context.mapInputTypes(node.getArguments());
+      context.mapLambdaInputTypes(node.getArguments());
       process(node.getBody(), context);
       return null;
     }

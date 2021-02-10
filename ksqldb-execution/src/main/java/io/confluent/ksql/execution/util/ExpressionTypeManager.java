@@ -138,7 +138,7 @@ public class ExpressionTypeManager {
     public Void visitLambdaExpression(
         final LambdaFunctionCall node, final TypeContext context
     ) {
-      context.mapInputTypes(node.getArguments());
+      context.mapLambdaInputTypes(node.getArguments());
       process(node.getBody(), context);
       return null;
     }
@@ -475,20 +475,20 @@ public class ExpressionTypeManager {
         final SqlType newSqlType = expressionTypeContext.getSqlType();
         argTypes.add(newSqlType);
         if (expression instanceof LambdaFunctionCall) {
-          newArgTypes.add(new SqlArgument(null, SqlLambda.of(expressionTypeContext.getInputTypes(), expressionTypeContext.getSqlType())));
+          newArgTypes.add(new SqlArgument(null, SqlLambda.of(expressionTypeContext.getLambdaInputTypes(), expressionTypeContext.getSqlType())));
         } else {
           newArgTypes.add(new SqlArgument(newSqlType, null));
         }
         if (expressionTypeContext.notAllInputsSeen()) {
           if (newSqlType instanceof SqlArray) {
             SqlArray inputArray = (SqlArray) newSqlType;
-            expressionTypeContext.addInputType(inputArray.getItemType());
+            expressionTypeContext.addLambdaInputType(inputArray.getItemType());
           } else if (newSqlType instanceof SqlMap) {
             SqlMap inputMap = (SqlMap) newSqlType;
-            expressionTypeContext.addInputType(inputMap.getKeyType());
-            expressionTypeContext.addInputType(inputMap.getValueType());
+            expressionTypeContext.addLambdaInputType(inputMap.getKeyType());
+            expressionTypeContext.addLambdaInputType(inputMap.getValueType());
           } else {
-            expressionTypeContext.addInputType(newSqlType);
+            expressionTypeContext.addLambdaInputType(newSqlType);
           }
         }
       }
