@@ -107,7 +107,6 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -378,7 +377,11 @@ public class SqlToJavaVisitor {
         argPairs.add(new Pair<>(lambdaArg, SchemaConverters.sqlToJavaConverter().toJavaType(context.getLambdaType(lambdaArg))));
       }
       return new Pair<>(LambdaUtil.function(argPairs, lambdaBody.getLeft()),
+<<<<<<< HEAD
           expressionTypeManager.getExpressionSqlType(lambdaFunctionCall, context.getLambdaTypeMapping(), context.getInputTypes()));
+=======
+          expressionTypeManager.getExpressionSqlType(exp, context));
+>>>>>>> Context update
     }
 
     @Override
@@ -452,7 +455,7 @@ public class SqlToJavaVisitor {
       final List<SqlType> argumentSchemas = new ArrayList<>();
       final List<SqlArgument> newArgumentSchemas = new ArrayList<>();
       for (final Expression argExpr : node.getArguments()) {
-        SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context.getLambdaTypeMapping(), context.getInputTypes());
+        SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context);
         // for lambdas: if it's the  array/map being passed in we save the type for later
         if (context.notAllInputsSeen()) {
           if (newSqlType instanceof SqlArray) {
@@ -824,7 +827,7 @@ public class SqlToJavaVisitor {
       final Pair<String, SqlType> right = process(node.getRight(), context);
 
       final SqlType schema =
-          expressionTypeManager.getExpressionSqlType(node, context.getLambdaTypeMapping(), context.getInputTypes());
+          expressionTypeManager.getExpressionSqlType(node, context);
 
       if (schema.baseType() == SqlBaseType.DECIMAL) {
         final SqlDecimal decimal = (SqlDecimal) schema;
@@ -879,7 +882,7 @@ public class SqlToJavaVisitor {
           .collect(Collectors.toList());
 
       final SqlType resultSchema =
-          expressionTypeManager.getExpressionSqlType(node, context.getLambdaTypeMapping(), context.getInputTypes());
+          expressionTypeManager.getExpressionSqlType(node, context);
       final String resultSchemaString =
           SchemaConverters.sqlToJavaConverter().toJavaType(resultSchema).getCanonicalName();
 
@@ -1096,7 +1099,7 @@ public class SqlToJavaVisitor {
     ) {
       return CastEvaluator.generateCode(exp.left, exp.right, sqlType, ksqlConfig);
     }
-}
+  }
 
   private static final class CaseWhenProcessed {
 

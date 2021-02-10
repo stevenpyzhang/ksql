@@ -47,9 +47,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -195,7 +193,7 @@ public class CodeGenRunner {
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       for (final Expression argExpr : node.getArguments()) {
         process(argExpr, context);
-        SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context.getLambdaTypeMapping(), context.getInputTypes());
+        SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context);
         // for lambdas - if we see this it's the  array/map being passed in. We save the type for later
         if (context.notAllInputsSeen()) {
           if (newSqlType instanceof SqlArray) {

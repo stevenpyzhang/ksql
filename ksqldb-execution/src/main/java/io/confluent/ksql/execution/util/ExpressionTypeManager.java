@@ -61,7 +61,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
-import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlArgument;
@@ -80,7 +79,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,18 +100,14 @@ public class ExpressionTypeManager {
   }
 
   public SqlType getExpressionSqlType(final Expression expression) {
-    return getExpressionSqlType(expression, Collections.emptyMap(), Collections.emptyList());
+    final TypeContext expressionTypeContext = new TypeContext();
+    return getExpressionSqlType(expression, expressionTypeContext);
   }
 
   public SqlType getExpressionSqlType(
-      final Expression expression, final Map<String, SqlType> inputMapping, final List<SqlType> inputTypes
-  ) {
-    final TypeContext expressionTypeContext = new TypeContext();
-    expressionTypeContext.setLambdaTypes(inputMapping);
-    expressionTypeContext.setInputTypes(inputTypes);
+      final Expression expression, final TypeContext expressionTypeContext) {
     new Visitor().process(expression, expressionTypeContext);
-    final SqlType newSqlType = expressionTypeContext.getSqlType();
-    return newSqlType;
+    return expressionTypeContext.getSqlType();
   }
 
   private class Visitor implements ExpressionVisitor<Void, TypeContext> {
