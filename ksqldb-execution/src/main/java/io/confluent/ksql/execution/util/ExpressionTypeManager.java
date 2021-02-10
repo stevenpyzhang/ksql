@@ -79,12 +79,9 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class ExpressionTypeManager {
 
@@ -455,10 +452,12 @@ public class ExpressionTypeManager {
       }
 
       if (functionRegistry.isTableFunction(node.getName())) {
-        final List<SqlType> argumentTypes = node.getArguments().isEmpty()
-            ? ImmutableList.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
-            : node.getArguments().stream().map(ExpressionTypeManager.this::getExpressionSqlType)
-                .collect(Collectors.toList());
+        final List<SqlArgument> argumentTypes = node.getArguments().isEmpty()
+            ? ImmutableList.of(new SqlArgument(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA, null))
+            : new ArrayList<>();
+        for (final Expression e : node.getArguments()) {
+          argumentTypes.add(new SqlArgument(getExpressionSqlType(e), null));
+        }
 
         final KsqlTableFunction tableFunction = functionRegistry
             .getTableFunction(node.getName(), argumentTypes);
@@ -494,7 +493,7 @@ public class ExpressionTypeManager {
         }
       }
 
-      final SqlType returnSchema = udfFactory.getUdfFunction(newArgTypes).getReturnType(argTypes);
+      final SqlType returnSchema = udfFactory.getFunction(newArgTypes).getReturnType(newArgTypes);
       expressionTypeContext.setSqlType(returnSchema);
       return null;
     }

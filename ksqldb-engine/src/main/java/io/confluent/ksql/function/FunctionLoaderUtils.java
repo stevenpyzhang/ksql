@@ -25,6 +25,7 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
@@ -146,7 +147,7 @@ public final class FunctionLoaderUtils {
       final String functionName,
       final boolean isVariadic
   ) {
-    final Function<List<SqlType>, SqlType> schemaProvider;
+    final Function<List<SqlArgument>, SqlType> schemaProvider;
     if (!Udf.NO_SCHEMA_PROVIDER.equals(schemaProviderFunctionName)) {
       schemaProvider = handleUdfSchemaProviderAnnotation(
           schemaProviderFunctionName, theClass, functionName);
@@ -182,7 +183,7 @@ public final class FunctionLoaderUtils {
       for (int i = 0; i < Math.min(parameters.size(), arguments.size()); i++) {
         final ParamType schema = parameters.get(i);
         if (schema instanceof LambdaType) {
-          List<SqlType> types = new ArrayList<>();
+          /*List<SqlType> types = new ArrayList<>();
           final int last = arguments.size() - 1;
           int numArgs = ((LambdaType) schema).inputTypes().size();
           for (int j = 0; j < numArgs; j++) {
@@ -194,14 +195,14 @@ public final class FunctionLoaderUtils {
             }
             types.add(arguments.get(j));
           }
-          SqlLambda sqlLambda = SqlLambda.of(types, arguments.get(last));
-          genericMapping.putAll(GenericsUtil.resolveLambdaGenerics(schema, sqlLambda));
+          SqlLambda sqlLambda = SqlLambda.of(types, arguments.get(last));*/
+          genericMapping.putAll(GenericsUtil.resolveLambdaGenerics(schema, arguments.get(i).getSqlLambda()));
         } else {
           // we resolve any variadic as if it were an array so that the type
           // structure matches the input type
           final SqlType instance = isVariadic && i == parameters.size() - 1
-              ? SqlTypes.array(arguments.get(i))
-              : arguments.get(i);
+              ? SqlTypes.array(arguments.get(i).getSqlType())
+              : arguments.get(i).getSqlType();
 
           genericMapping.putAll(GenericsUtil.resolveGenerics(schema, instance));
         }
@@ -222,7 +223,7 @@ public final class FunctionLoaderUtils {
     }
   }
 
-  private static Function<List<SqlType>, SqlType> handleUdfSchemaProviderAnnotation(
+  private static Function<List<SqlArgument>, SqlType> handleUdfSchemaProviderAnnotation(
       final String schemaProviderName,
       final Class theClass,
       final String functionName
@@ -259,7 +260,7 @@ public final class FunctionLoaderUtils {
   private static SqlType invokeSchemaProviderMethod(
       final Object instance,
       final Method m,
-      final List<SqlType> args,
+      final List<SqlArgument> args,
       final String functionName
   ) {
     try {

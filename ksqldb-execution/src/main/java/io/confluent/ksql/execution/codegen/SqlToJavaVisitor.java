@@ -474,9 +474,9 @@ public class SqlToJavaVisitor {
         argumentSchemas.add(newSqlType);
       }
 
-      final KsqlFunction function = udfFactory.getUdfFunction(newArgumentSchemas);
+      final KsqlFunction function = udfFactory.getFunction(newArgumentSchemas);
 
-      final SqlType functionReturnSchema = function.getReturnType(argumentSchemas);
+      final SqlType functionReturnSchema = function.getReturnType(newArgumentSchemas);
       final String javaReturnType =
           SchemaConverters.sqlToJavaConverter().toJavaType(functionReturnSchema).getSimpleName();
 

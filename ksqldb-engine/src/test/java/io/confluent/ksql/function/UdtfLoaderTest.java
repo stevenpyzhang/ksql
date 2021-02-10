@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udtf.Udtf;
 import io.confluent.ksql.function.udtf.UdtfDescription;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -52,14 +53,14 @@ public class UdtfLoaderTest {
   public void shouldLoadSimpleParams() {
 
     // Given:
-    final List<SqlType> args = ImmutableList.of(
-        SqlTypes.INTEGER,
-        SqlTypes.BIGINT,
-        SqlTypes.DOUBLE,
-        SqlTypes.BOOLEAN,
-        SqlTypes.STRING,
-        DECIMAL_SCHEMA,
-        STRUCT_SCHEMA
+    final List<SqlArgument> args = ImmutableList.of(
+        SqlArgument.of(SqlTypes.INTEGER, null),
+        SqlArgument.of(SqlTypes.BIGINT, null),
+        SqlArgument.of(SqlTypes.DOUBLE, null),
+        SqlArgument.of( SqlTypes.BOOLEAN, null),
+        SqlArgument.of(SqlTypes.STRING, null),
+        SqlArgument.of( DECIMAL_SCHEMA, null),
+        SqlArgument.of( STRUCT_SCHEMA, null)
     );
 
     // When:
@@ -74,14 +75,14 @@ public class UdtfLoaderTest {
   public void shouldLoadParameterizedListParams() {
 
     // Given:
-    final List<SqlType> args = ImmutableList.of(
-        SqlTypes.array(SqlTypes.INTEGER),
-        SqlTypes.array(SqlTypes.BIGINT),
-        SqlTypes.array(SqlTypes.DOUBLE),
-        SqlTypes.array(SqlTypes.BOOLEAN),
-        SqlTypes.array(SqlTypes.STRING),
-        SqlTypes.array(DECIMAL_SCHEMA),
-        SqlTypes.array(STRUCT_SCHEMA)
+    final List<SqlArgument> args = ImmutableList.of(
+        SqlArgument.of(SqlTypes.array(SqlTypes.INTEGER), null),
+        SqlArgument.of(SqlTypes.array(SqlTypes.BIGINT), null),
+        SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE), null),
+        SqlArgument.of(SqlTypes.array(SqlTypes.BOOLEAN), null),
+        SqlArgument.of(SqlTypes.array(SqlTypes.STRING), null),
+        SqlArgument.of(SqlTypes.array(DECIMAL_SCHEMA), null),
+        SqlArgument.of(SqlTypes.array(STRUCT_SCHEMA),  null)
     );
 
     // When:
@@ -96,14 +97,14 @@ public class UdtfLoaderTest {
   public void shouldLoadParameterizedMapParams() {
 
     // Given:
-    final List<SqlType> args = ImmutableList.of(
-        SqlTypes.map(SqlTypes.BIGINT, SqlTypes.INTEGER),
-        SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT),
-        SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE),
-        SqlTypes.map(SqlTypes.STRING, SqlTypes.BOOLEAN),
-        SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING),
-        SqlTypes.map(SqlTypes.STRING, DECIMAL_SCHEMA),
-        SqlTypes.map(SqlTypes.STRING, STRUCT_SCHEMA)
+    final List<SqlArgument> args = ImmutableList.of(
+        SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.INTEGER), null),
+        SqlArgument.of(SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT), null),
+        SqlArgument.of( SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE), null),
+        SqlArgument.of(SqlTypes.map(SqlTypes.STRING, SqlTypes.BOOLEAN), null),
+        SqlArgument.of(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING), null),
+        SqlArgument.of(SqlTypes.map(SqlTypes.STRING, DECIMAL_SCHEMA), null),
+        SqlArgument.of(SqlTypes.map(SqlTypes.STRING, STRUCT_SCHEMA),  null)
     );
 
     // When:
@@ -118,7 +119,7 @@ public class UdtfLoaderTest {
   public void shouldLoadListIntReturn() {
 
     // Given:
-    final List<SqlType> args = ImmutableList.of(SqlTypes.INTEGER);
+    final List<SqlArgument> args = ImmutableList.of(SqlArgument.of(SqlTypes.INTEGER, null));
 
     // When:
     final KsqlTableFunction function = FUNC_REG
@@ -132,7 +133,7 @@ public class UdtfLoaderTest {
   public void shouldLoadListLongReturn() {
 
     // Given:
-    final List<SqlType> args = ImmutableList.of(SqlTypes.BIGINT);
+    final List<SqlArgument> args = ImmutableList.of(SqlArgument.of(SqlTypes.BIGINT, null));
 
     // When:
     final KsqlTableFunction function = FUNC_REG
@@ -146,7 +147,7 @@ public class UdtfLoaderTest {
   public void shouldLoadListDoubleReturn() {
 
     // Given:
-    final List<SqlType> args = ImmutableList.of(SqlTypes.DOUBLE);
+    final List<SqlArgument> args = ImmutableList.of(SqlArgument.of(SqlTypes.DOUBLE, null));
 
     // When:
     final KsqlTableFunction function = FUNC_REG
@@ -160,7 +161,7 @@ public class UdtfLoaderTest {
   public void shouldLoadListBooleanReturn() {
 
     // Given:
-    final List<SqlType> args = ImmutableList.of(SqlTypes.BOOLEAN);
+    final List<SqlArgument> args = ImmutableList.of(SqlArgument.of(SqlTypes.BOOLEAN, null));
 
     // When:
     final KsqlTableFunction function = FUNC_REG
@@ -174,7 +175,7 @@ public class UdtfLoaderTest {
   public void shouldLoadListStringReturn() {
 
     // Given:
-    final List<SqlType> args = ImmutableList.of(SqlTypes.STRING);
+    final List<SqlArgument> args = ImmutableList.of(SqlArgument.of(SqlTypes.STRING, null));
 
     // When:
     final KsqlTableFunction function = FUNC_REG
@@ -188,7 +189,7 @@ public class UdtfLoaderTest {
   public void shouldLoadListBigDecimalReturnWithSchemaProvider() {
 
     // Given:
-    final List<SqlType> args = ImmutableList.of(DECIMAL_SCHEMA);
+    final List<SqlArgument> args = ImmutableList.of(SqlArgument.of(DECIMAL_SCHEMA, null));
 
     // When:
     final KsqlTableFunction function = FUNC_REG
@@ -202,7 +203,7 @@ public class UdtfLoaderTest {
   public void shouldLoadListStructReturnWithSchemaAnnotation() {
 
     // Given:
-    final List<SqlType> args = ImmutableList.of(STRUCT_SCHEMA);
+    final List<SqlArgument> args = ImmutableList.of(SqlArgument.of(STRUCT_SCHEMA, null));
 
     // When:
     final KsqlTableFunction function = FUNC_REG
@@ -216,7 +217,7 @@ public class UdtfLoaderTest {
   public void shouldLoadVarArgsMethod() {
 
     // Given:
-    final List<SqlType> args = ImmutableList.of(STRUCT_SCHEMA);
+    final List<SqlArgument> args = ImmutableList.of(SqlArgument.of(STRUCT_SCHEMA, null));
 
     // When:
     final KsqlTableFunction function = FUNC_REG

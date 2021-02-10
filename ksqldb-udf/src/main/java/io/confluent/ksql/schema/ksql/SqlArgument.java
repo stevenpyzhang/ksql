@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 
@@ -31,6 +32,10 @@ public class SqlArgument {
   public SqlArgument(final SqlType type, final SqlLambda lambda) {
     sqlType = type;
     sqlLambda = lambda;
+  }
+
+  public static SqlArgument of(final SqlType type, final SqlLambda lambda) {
+    return new SqlArgument(type, lambda);
   }
 
   public SqlType getSqlType() {
