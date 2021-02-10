@@ -239,7 +239,7 @@ public class ExpressionTypeManager {
       expressionTypeContext.setSqlType(structField.type());
       return null;
     }
-  
+
     @Override
     public Void visitStringLiteral(
         final StringLiteral node, final TypeContext expressionTypeContext
