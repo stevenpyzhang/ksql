@@ -367,7 +367,7 @@ public class SqlToJavaVisitor {
     public Pair<String, SqlType> visitLambdaExpression(
         final LambdaFunctionCall lambdaFunctionCall, final TypeContext context) {
 
-      context.mapInputTypes(lambdaFunctionCall.getArguments());
+      context.mapLambdaInputTypes(lambdaFunctionCall.getArguments());
 
       final Pair<String, SqlType> lambdaBody = process(lambdaFunctionCall.getBody(), context);
 
@@ -377,11 +377,7 @@ public class SqlToJavaVisitor {
         argPairs.add(new Pair<>(lambdaArg, SchemaConverters.sqlToJavaConverter().toJavaType(context.getLambdaType(lambdaArg))));
       }
       return new Pair<>(LambdaUtil.function(argPairs, lambdaBody.getLeft()),
-<<<<<<< HEAD
-          expressionTypeManager.getExpressionSqlType(lambdaFunctionCall, context.getLambdaTypeMapping(), context.getInputTypes()));
-=======
-          expressionTypeManager.getExpressionSqlType(exp, context));
->>>>>>> Context update
+          expressionTypeManager.getExpressionSqlType(lambdaFunctionCall, context));
     }
 
     @Override
@@ -460,17 +456,17 @@ public class SqlToJavaVisitor {
         if (context.notAllInputsSeen()) {
           if (newSqlType instanceof SqlArray) {
             SqlArray inputArray = (SqlArray) newSqlType;
-            context.addInputType(inputArray.getItemType());
+            context.addLambdaInputType(inputArray.getItemType());
           } else if (newSqlType instanceof SqlMap) {
             SqlMap inputMap = (SqlMap) newSqlType;
-            context.addInputType(inputMap.getKeyType());
-            context.addInputType(inputMap.getValueType());
+            context.addLambdaInputType(inputMap.getKeyType());
+            context.addLambdaInputType(inputMap.getValueType());
           } else {
-            context.addInputType(newSqlType);
+            context.addLambdaInputType(newSqlType);
           }
         }
         if (argExpr instanceof LambdaFunctionCall) {
-          newArgumentSchemas.add(new SqlArgument(null, SqlLambda.of(context.getInputTypes(), newSqlType)));
+          newArgumentSchemas.add(new SqlArgument(null, SqlLambda.of(context.getLambdaInputTypes(), newSqlType)));
         } else {
           newArgumentSchemas.add(new SqlArgument(newSqlType, null));
         }
