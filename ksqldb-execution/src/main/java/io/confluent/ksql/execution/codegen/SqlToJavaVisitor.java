@@ -78,7 +78,6 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.function.KsqlFunction;
-import io.confluent.ksql.function.TriFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.ParamType;
@@ -108,7 +107,6 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -380,7 +378,7 @@ public class SqlToJavaVisitor {
         argPairs.add(new Pair<>(lambdaArg, SchemaConverters.sqlToJavaConverter().toJavaType(context.getLambdaType(lambdaArg))));
       }
       return new Pair<>(LambdaUtil.function(argPairs, lambdaBody.getLeft()),
-          expressionTypeManager.getExpressionSqlType(exp, context.getLambdaTypeMapping(), context.getInputTypes()));
+          expressionTypeManager.getExpressionSqlType(exp, context));
     }
 
     @Override
@@ -454,9 +452,9 @@ public class SqlToJavaVisitor {
       final List<SqlType> argumentSchemas = new ArrayList<>();
       final List<SqlArgument> newArgumentSchemas = new ArrayList<>();
       for (final Expression argExpr : node.getArguments()) {
-        SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context.getLambdaTypeMapping(), context.getInputTypes());
+        SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context);
         // for lambdas: if it's the  array/map being passed in we save the type for later
-        if (shouldSetInputType(node, context)) {
+        if (context.notAllInputsSeen()) {
           if (newSqlType instanceof SqlArray) {
             SqlArray inputArray = (SqlArray) newSqlType;
             context.addInputType(inputArray.getItemType());
@@ -826,7 +824,7 @@ public class SqlToJavaVisitor {
       final Pair<String, SqlType> right = process(node.getRight(), context);
 
       final SqlType schema =
-          expressionTypeManager.getExpressionSqlType(node, context.getLambdaTypeMapping(), context.getInputTypes());
+          expressionTypeManager.getExpressionSqlType(node, context);
 
       if (schema.baseType() == SqlBaseType.DECIMAL) {
         final SqlDecimal decimal = (SqlDecimal) schema;
@@ -881,7 +879,7 @@ public class SqlToJavaVisitor {
           .collect(Collectors.toList());
 
       final SqlType resultSchema =
-          expressionTypeManager.getExpressionSqlType(node, context.getLambdaTypeMapping(), context.getInputTypes());
+          expressionTypeManager.getExpressionSqlType(node, context);
       final String resultSchemaString =
           SchemaConverters.sqlToJavaConverter().toJavaType(resultSchema).getCanonicalName();
 
@@ -1097,12 +1095,6 @@ public class SqlToJavaVisitor {
         final SqlType sqlType
     ) {
       return CastEvaluator.generateCode(exp.left, exp.right, sqlType, ksqlConfig);
-    }
-
-    private Boolean shouldSetInputType(final FunctionCall node, final TypeContext context) {
-      return (context.getInputTypes() == null)
-          || (node.getName().equals(FunctionName.of("MAP_REDUCE")) && context.getInputTypes().size() == 2)
-          || (node.getName().equals(FunctionName.of("ARRAY_REDUCE")) && context.getInputTypes().size() == 1);
     }
   }
 

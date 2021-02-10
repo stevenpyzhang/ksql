@@ -47,9 +47,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -195,9 +193,9 @@ public class CodeGenRunner {
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       for (final Expression argExpr : node.getArguments()) {
         process(argExpr, context);
-        SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context.getLambdaTypeMapping(), context.getInputTypes());
+        SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context);
         // for lambdas - if we see this it's the  array/map being passed in. We save the type for later
-        if (shouldSetInputType(node, context)) {
+        if (context.notAllInputsSeen()) {
           if (newSqlType instanceof SqlArray) {
             SqlArray inputArray = (SqlArray) newSqlType;
             context.addInputType(inputArray.getItemType());
@@ -303,12 +301,6 @@ public class CodeGenRunner {
           SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(column.type()),
           column.index()
       );
-    }
-
-    private Boolean shouldSetInputType(final FunctionCall node, final TypeContext context) {
-      return (context.getInputTypes() == null)
-          || (node.getName().equals(FunctionName.of("MAP_REDUCE")) && context.getInputTypes().size() == 2)
-          || (node.getName().equals(FunctionName.of("ARRAY_REDUCE")) && context.getInputTypes().size() == 1);
     }
   }
 }

@@ -8,32 +8,51 @@ import java.util.List;
 import java.util.Map;
 
 public class TypeContext {
-
+  private SqlType sqlType;
   private final List<SqlType> inputTypes = new ArrayList<>();
   private final Map<String, SqlType> lambdaTypeMapping = new HashMap<>();
 
-  List<SqlType> getInputTypes() {
+  public SqlType getSqlType() {
+    return sqlType;
+  }
+
+  public void setSqlType(final SqlType sqlType) {
+    this.sqlType = sqlType;
+  }
+
+  public List<SqlType> getInputTypes() {
     if (inputTypes.size() == 0) {
       return null;
     }
     return inputTypes;
   }
 
-  void addInputType(final SqlType inputType) {
+  public void addInputType(final SqlType inputType) {
     this.inputTypes.add(inputType);
   }
 
-  void mapInputTypes(final List<String> argumentList){
+  public void mapInputTypes(final List<String> argumentList) {
+    if (inputTypes.size() != argumentList.size()) {
+      throw new IllegalArgumentException("Was expecting " +
+          inputTypes.size() +
+          " arguments but found " +
+          argumentList.size() + "," + argumentList +
+          ". Check your lambda statement.");
+    }
     for (int i = 0; i < argumentList.size(); i++) {
       this.lambdaTypeMapping.putIfAbsent(argumentList.get(i), inputTypes.get(i));
     }
   }
 
-  SqlType getLambdaType(final String name) {
+  public SqlType getLambdaType(final String name) {
     return lambdaTypeMapping.get(name);
   }
 
   Map<String, SqlType> getLambdaTypeMapping() {
     return this.lambdaTypeMapping;
+  }
+
+  public Boolean notAllInputsSeen() {
+    return lambdaTypeMapping.size() != inputTypes.size() || inputTypes.size() == 0;
   }
 }
