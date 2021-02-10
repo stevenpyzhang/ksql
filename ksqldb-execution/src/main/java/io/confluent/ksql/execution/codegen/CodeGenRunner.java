@@ -216,7 +216,7 @@ public class CodeGenRunner {
         }
       }
 
-      final KsqlScalarFunction function = holder.getUdfFunction(newArgumentTypes);
+      final KsqlScalarFunction function = holder.getFunction(newArgumentTypes);
       spec.addFunction(
           function.name(),
           function.newInstance(ksqlConfig)

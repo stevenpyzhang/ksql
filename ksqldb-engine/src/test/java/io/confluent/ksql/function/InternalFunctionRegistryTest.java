@@ -38,6 +38,7 @@ import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -264,7 +265,7 @@ public class InternalFunctionRegistryTest {
   public void shouldAddTableFunction() {
     functionRegistry.addTableFunctionFactory(createTableFunctionFactory());
     assertThat(functionRegistry.getTableFunction(FunctionName.of("my_tablefunction"),
-        ImmutableList.of(SqlTypes.INTEGER)
+        ImmutableList.of(SqlArgument.of(SqlTypes.INTEGER, null))
     ), not(nullValue()));
   }
 
@@ -302,7 +303,7 @@ public class InternalFunctionRegistryTest {
 
     // Then:
     assertThat(functionRegistry.getUdfFactory(FunctionName.of("func"))
-        .getFunction(Collections.singletonList(SqlTypes.BIGINT)), equalTo(func2));
+        .getFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT, null))), equalTo(func2));
     assertThat(functionRegistry.getUdfFactory(FunctionName.of("func"))
         .getFunction(Collections.emptyList()), equalTo(func));
   }
@@ -402,7 +403,7 @@ public class InternalFunctionRegistryTest {
     return new TableFunctionFactory(new UdfMetadata("my_tablefunction",
         "", "", "", FunctionCategory.OTHER, "")) {
       @Override
-      public KsqlTableFunction createTableFunction(final List<SqlType> argTypeList) {
+      public KsqlTableFunction createTableFunction(final List<SqlArgument> argTypeList) {
         return tableFunction;
       }
 

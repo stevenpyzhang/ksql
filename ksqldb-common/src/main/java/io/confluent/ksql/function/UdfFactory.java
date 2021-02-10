@@ -80,11 +80,11 @@ public class UdfFactory {
         + '}';
   }
 
-  public synchronized KsqlScalarFunction getUdfFunction(final List<SqlArgument> argTypes) {
+  public synchronized KsqlScalarFunction getFunction(final List<SqlArgument> argTypes) {
     return udfIndex.getUdfFunction(argTypes);
   }
 
-  public synchronized KsqlScalarFunction getFunction(final List<SqlType> argTypes) {
+  /*public synchronized KsqlScalarFunction getFunction(final List<SqlType> argTypes) {
     return udfIndex.getFunction(argTypes);
-  }
+  }*/
 }
