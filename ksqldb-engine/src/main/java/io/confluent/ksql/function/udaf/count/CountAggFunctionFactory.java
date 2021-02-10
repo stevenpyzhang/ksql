@@ -20,6 +20,7 @@ import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 
@@ -33,7 +34,7 @@ public class CountAggFunctionFactory extends AggregateFunctionFactory {
 
   @Override
   public KsqlAggregateFunction createAggregateFunction(
-      final List<SqlType> argTypeList,
+      final List<SqlArgument> argTypeList,
       final AggregateFunctionInitArguments initArgs
   ) {
     return new CountKudaf(FUNCTION_NAME, initArgs.udafIndex());

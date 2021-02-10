@@ -183,20 +183,7 @@ public final class FunctionLoaderUtils {
       for (int i = 0; i < Math.min(parameters.size(), arguments.size()); i++) {
         final ParamType schema = parameters.get(i);
         if (schema instanceof LambdaType) {
-          /*List<SqlType> types = new ArrayList<>();
-          final int last = arguments.size() - 1;
-          int numArgs = ((LambdaType) schema).inputTypes().size();
-          for (int j = 0; j < numArgs; j++) {
-            if (arguments.get(j) instanceof SqlMap) {
-              types.add(((SqlMap) arguments.get(j)).getKeyType());
-              types.add(((SqlMap) arguments.get(j)).getValueType());
-              numArgs--;
-              continue;
-            }
-            types.add(arguments.get(j));
-          }
-          SqlLambda sqlLambda = SqlLambda.of(types, arguments.get(last));*/
-          genericMapping.putAll(GenericsUtil.resolveLambdaGenerics(schema, arguments.get(i).getSqlLambda()));
+          genericMapping.putAll(GenericsUtil.resolveGenerics(schema, arguments.get(i)));
         } else {
           // we resolve any variadic as if it were an array so that the type
           // structure matches the input type
@@ -204,7 +191,7 @@ public final class FunctionLoaderUtils {
               ? SqlTypes.array(arguments.get(i).getSqlType())
               : arguments.get(i).getSqlType();
 
-          genericMapping.putAll(GenericsUtil.resolveGenerics(schema, instance));
+          genericMapping.putAll(GenericsUtil.resolveGenerics(schema, SqlArgument.of(instance, null)));
         }
 
       }

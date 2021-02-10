@@ -18,7 +18,6 @@ package io.confluent.ksql.function;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.schema.ksql.SqlArgument;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
@@ -81,10 +80,6 @@ public class UdfFactory {
   }
 
   public synchronized KsqlScalarFunction getFunction(final List<SqlArgument> argTypes) {
-    return udfIndex.getUdfFunction(argTypes);
-  }
-
-  /*public synchronized KsqlScalarFunction getFunction(final List<SqlType> argTypes) {
     return udfIndex.getFunction(argTypes);
-  }*/
+  }
 }

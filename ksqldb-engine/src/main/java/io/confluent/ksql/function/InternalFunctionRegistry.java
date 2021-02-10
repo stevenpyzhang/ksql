@@ -123,7 +123,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
     return udafFactory.createAggregateFunction(
-        Collections.singletonList(argumentType),
+        Collections.singletonList(SqlArgument.of(argumentType, null)),
         initArgs
     );
   }
