@@ -211,7 +211,6 @@ final class EngineContext {
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {
-      e.printStackTrace();
       throw new KsqlStatementException(
           "Exception while preparing statement: " + e.getMessage(), stmt.getStatementText(), e);
     }
