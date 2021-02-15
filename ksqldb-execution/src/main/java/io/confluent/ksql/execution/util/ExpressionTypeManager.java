@@ -453,10 +453,10 @@ public class ExpressionTypeManager {
 
       if (functionRegistry.isTableFunction(node.getName())) {
         final List<SqlArgument> argumentTypes = node.getArguments().isEmpty()
-            ? ImmutableList.of(new SqlArgument(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA, null))
+            ? ImmutableList.of(SqlArgument.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA, null))
             : new ArrayList<>();
         for (final Expression e : node.getArguments()) {
-          argumentTypes.add(new SqlArgument(getExpressionSqlType(e), null));
+          argumentTypes.add(SqlArgument.of(getExpressionSqlType(e), null));
         }
 
         final KsqlTableFunction tableFunction = functionRegistry
@@ -468,16 +468,14 @@ public class ExpressionTypeManager {
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
 
-      final List<SqlType> argTypes = new ArrayList<>();
-      final List<SqlArgument> newArgTypes = new ArrayList<>();
+      final List<SqlArgument> argTypes = new ArrayList<>();
       for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
         final SqlType newSqlType = expressionTypeContext.getSqlType();
-        argTypes.add(newSqlType);
         if (expression instanceof LambdaFunctionCall) {
-          newArgTypes.add(new SqlArgument(null, SqlLambda.of(expressionTypeContext.getLambdaInputTypes(), expressionTypeContext.getSqlType())));
+          argTypes.add(SqlArgument.of(null, SqlLambda.of(expressionTypeContext.getLambdaInputTypes(), expressionTypeContext.getSqlType())));
         } else {
-          newArgTypes.add(new SqlArgument(newSqlType, null));
+          argTypes.add(SqlArgument.of(newSqlType, null));
         }
         if (expressionTypeContext.notAllInputsSeen()) {
           if (newSqlType instanceof SqlArray) {
@@ -493,7 +491,7 @@ public class ExpressionTypeManager {
         }
       }
 
-      final SqlType returnSchema = udfFactory.getFunction(newArgTypes).getReturnType(newArgTypes);
+      final SqlType returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);
       expressionTypeContext.setSqlType(returnSchema);
       return null;
     }

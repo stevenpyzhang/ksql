@@ -124,11 +124,11 @@ public class UdfLoaderTest {
     assertThat(function, not(nullValue()));
 
     final Kudf substring1 = function.getFunction(
-        Arrays.asList(new SqlArgument(SqlTypes.STRING, null), new SqlArgument(SqlTypes.INTEGER, null))).newInstance(ksqlConfig);
+        Arrays.asList(SqlArgument.of(SqlTypes.STRING, null), SqlArgument.of(SqlTypes.INTEGER, null))).newInstance(ksqlConfig);
     assertThat(substring1.evaluate("foo", 2), equalTo("oo"));
 
     final Kudf substring2 = function.getFunction(
-        Arrays.asList(new SqlArgument(SqlTypes.STRING, null), new SqlArgument(SqlTypes.INTEGER, null), new SqlArgument(SqlTypes.INTEGER, null))).newInstance(ksqlConfig);
+        Arrays.asList(SqlArgument.of(SqlTypes.STRING, null), SqlArgument.of(SqlTypes.INTEGER, null), SqlArgument.of(SqlTypes.INTEGER, null))).newInstance(ksqlConfig);
     assertThat(substring2.evaluate("foo", 2, 1), equalTo("o"));
   }
 
@@ -181,7 +181,7 @@ public class UdfLoaderTest {
 
     // When:
     final KsqlScalarFunction fun = FUNC_REG.getUdfFactory(FunctionName.of("floor"))
-        .getFunction(ImmutableList.of(new SqlArgument(schema, null)));
+        .getFunction(ImmutableList.of(SqlArgument.of(schema, null)));
 
     // Then:
     assertThat(fun.name().text(), equalToIgnoringCase("floor"));

@@ -188,7 +188,7 @@ public class CodeGenRunner {
 
     @Override
     public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
-      final List<SqlArgument> newArgumentTypes = new ArrayList<>();
+      final List<SqlArgument> argumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       for (final Expression argExpr : node.getArguments()) {
@@ -209,14 +209,14 @@ public class CodeGenRunner {
         }
 
         if (argExpr instanceof LambdaFunctionCall) {
-          newArgumentTypes.add(new SqlArgument(null, SqlLambda.of(context.getLambdaInputTypes(), newSqlType)));
+          argumentTypes.add(SqlArgument.of(null, SqlLambda.of(context.getLambdaInputTypes(), newSqlType)));
 
         } else {
-          newArgumentTypes.add(new SqlArgument(newSqlType, null));
+          argumentTypes.add(SqlArgument.of(newSqlType, null));
         }
       }
 
-      final KsqlScalarFunction function = holder.getFunction(newArgumentTypes);
+      final KsqlScalarFunction function = holder.getFunction(argumentTypes);
       spec.addFunction(
           function.name(),
           function.newInstance(ksqlConfig)

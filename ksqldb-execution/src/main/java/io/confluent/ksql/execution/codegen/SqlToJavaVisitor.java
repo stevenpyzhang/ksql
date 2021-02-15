@@ -448,8 +448,7 @@ public class SqlToJavaVisitor {
       final String instanceName = funNameToCodeName.apply(functionName);
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
-      final List<SqlType> argumentSchemas = new ArrayList<>();
-      final List<SqlArgument> newArgumentSchemas = new ArrayList<>();
+      final List<SqlArgument> argumentSchemas = new ArrayList<>();
       for (final Expression argExpr : node.getArguments()) {
         SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context);
         // for lambdas: if it's the  array/map being passed in we save the type for later
@@ -466,16 +465,15 @@ public class SqlToJavaVisitor {
           }
         }
         if (argExpr instanceof LambdaFunctionCall) {
-          newArgumentSchemas.add(new SqlArgument(null, SqlLambda.of(context.getLambdaInputTypes(), newSqlType)));
+          argumentSchemas.add(SqlArgument.of(null, SqlLambda.of(context.getLambdaInputTypes(), newSqlType)));
         } else {
-          newArgumentSchemas.add(new SqlArgument(newSqlType, null));
+          argumentSchemas.add(SqlArgument.of(newSqlType, null));
         }
-        argumentSchemas.add(newSqlType);
       }
 
-      final KsqlFunction function = udfFactory.getFunction(newArgumentSchemas);
+      final KsqlFunction function = udfFactory.getFunction(argumentSchemas);
 
-      final SqlType functionReturnSchema = function.getReturnType(newArgumentSchemas);
+      final SqlType functionReturnSchema = function.getReturnType(argumentSchemas);
       final String javaReturnType =
           SchemaConverters.sqlToJavaConverter().toJavaType(functionReturnSchema).getSimpleName();
 
@@ -485,7 +483,7 @@ public class SqlToJavaVisitor {
 
       for (int i = 0; i < arguments.size(); i++) {
         final Expression arg = arguments.get(i);
-        final SqlType sqlType = argumentSchemas.get(i);
+        final SqlType sqlType = argumentSchemas.get(i).getSqlType();
 
         final ParamType paramType;
         if (i >= function.parameters().size() - 1 && function.isVariadic()) {
