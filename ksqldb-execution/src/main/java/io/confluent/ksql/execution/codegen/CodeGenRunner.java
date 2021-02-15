@@ -188,7 +188,7 @@ public class CodeGenRunner {
 
     @Override
     public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
-      final List<SqlArgument> newArgumentTypes = new ArrayList<>();
+      final List<SqlArgument> argumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       for (final Expression argExpr : node.getArguments()) {
@@ -209,14 +209,14 @@ public class CodeGenRunner {
         }
 
         if (argExpr instanceof LambdaFunctionCall) {
-          newArgumentTypes.add(new SqlArgument(null, SqlLambda.of(context.getLambdaInputTypes(), newSqlType)));
+          argumentTypes.add(new SqlArgument(null, SqlLambda.of(context.getLambdaInputTypes(), newSqlType)));
 
         } else {
-          newArgumentTypes.add(new SqlArgument(newSqlType, null));
+          argumentTypes.add(new SqlArgument(newSqlType, null));
         }
       }
 
-      final KsqlScalarFunction function = holder.getFunction(newArgumentTypes);
+      final KsqlScalarFunction function = holder.getFunction(argumentTypes);
       spec.addFunction(
           function.name(),
           function.newInstance(ksqlConfig)
@@ -226,7 +226,9 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitSubscriptExpression(final SubscriptExpression node, final TypeContext context) {
+    public Void visitSubscriptExpression(
+        final SubscriptExpression node, final TypeContext context
+    ) {
       if (node.getBase() instanceof UnqualifiedColumnReferenceExp) {
         final UnqualifiedColumnReferenceExp arrayBaseName
             = (UnqualifiedColumnReferenceExp) node.getBase();
@@ -239,7 +241,9 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitCreateArrayExpression(final CreateArrayExpression exp, final TypeContext context) {
+    public Void visitCreateArrayExpression(
+        final CreateArrayExpression exp, final TypeContext context
+    ) {
       exp.getValues().forEach(val -> process(val, context));
       return null;
     }
@@ -277,8 +281,10 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitDereferenceExpression(final DereferenceExpression node, final TypeContext context) {
-      process(node.getBase(), context);
+    public Void visitDereferenceExpression(
+        final DereferenceExpression node, final TypeContext context
+    ) {
+      process(node.getBase(), null);
       return null;
     }
 
