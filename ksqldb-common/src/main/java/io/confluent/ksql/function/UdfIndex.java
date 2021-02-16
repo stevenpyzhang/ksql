@@ -19,8 +19,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
@@ -142,7 +144,7 @@ public class UdfIndex<T extends FunctionSignature> {
     curr.update(function, order);
   }
 
-  T getFunction(final List<SqlType> arguments) {
+  T getFunction(final List<SqlArgument> arguments) {
     final List<Node> candidates = new ArrayList<>();
 
     // first try to get the candidates without any implicit casting
@@ -155,7 +157,7 @@ public class UdfIndex<T extends FunctionSignature> {
     if (fun.isPresent()) {
       return fun.get();
     } else if (!supportsImplicitCasts) {
-      throw createNoMatchingFunctionException(arguments);
+      throw createNoMatchingFunctionExceptionSqlArgument(arguments);
     }
 
     // if none were found (candidates is empty) try again with
@@ -165,11 +167,11 @@ public class UdfIndex<T extends FunctionSignature> {
         .stream()
         .max(Node::compare)
         .map(node -> node.value)
-        .orElseThrow(() -> createNoMatchingFunctionException(arguments));
+        .orElseThrow(() -> createNoMatchingFunctionExceptionSqlArgument(arguments));
   }
 
   private void getCandidates(
-      final List<SqlType> arguments,
+      final List<SqlArgument> arguments,
       final int argIndex,
       final Node current,
       final List<Node> candidates,
@@ -182,8 +184,7 @@ public class UdfIndex<T extends FunctionSignature> {
       }
       return;
     }
-
-    final SqlType arg = arguments.get(argIndex);
+    final SqlArgument arg = arguments.get(argIndex);
     for (final Entry<Parameter, Node> candidate : current.children.entrySet()) {
       final Map<GenericType, SqlType> reservedCopy = new HashMap<>(reservedGenerics);
       if (candidate.getKey().accepts(arg, reservedCopy, allowCasts)) {
@@ -198,6 +199,30 @@ public class UdfIndex<T extends FunctionSignature> {
 
     final String requiredTypes = paramTypes.stream()
         .map(type -> type == null ? "null" : type.toString(FormatOptions.noEscape()))
+        .collect(Collectors.joining(", ", "(", ")"));
+
+    final String acceptedTypes = allFunctions.values().stream()
+        .map(UdfIndex::formatAvailableSignatures)
+        .collect(Collectors.joining(System.lineSeparator()));
+
+    return new KsqlException("Function '" + udfName
+        + "' does not accept parameters " + requiredTypes + "."
+        + System.lineSeparator()
+        + "Valid alternatives are:"
+        + System.lineSeparator()
+        + acceptedTypes
+        + System.lineSeparator()
+        + "For detailed information on a function run: DESCRIBE FUNCTION <Function-Name>;"
+    );
+  }
+
+  private KsqlException createNoMatchingFunctionExceptionSqlArgument(
+      final List<SqlArgument> paramTypes
+  ) {
+    LOG.debug("Current UdfIndex:\n{}", describe());
+
+    final String requiredTypes = paramTypes.stream()
+        .map(type -> type == null ? "null" : type.getSqlType().toString(FormatOptions.noEscape()))
         .collect(Collectors.joining(", ", "(", ")"));
 
     final String acceptedTypes = allFunctions.values().stream()
@@ -348,9 +373,9 @@ public class UdfIndex<T extends FunctionSignature> {
      *         this parameter
      */
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
-    boolean accepts(final SqlType argument, final Map<GenericType, SqlType> reservedGenerics,
+    boolean accepts(final SqlArgument argument, final Map<GenericType, SqlType> reservedGenerics,
         final boolean allowCasts) {
-      if (argument == null) {
+      if (argument == null || (argument.getSqlLambda() == null && argument.getSqlType() == null)) {
         return true;
       }
 
@@ -364,15 +389,15 @@ public class UdfIndex<T extends FunctionSignature> {
 
     private static boolean reserveGenerics(
         final ParamType schema,
-        final SqlType argument,
+        final SqlArgument argument,
         final Map<GenericType, SqlType> reservedGenerics
     ) {
-      if (!GenericsUtil.instanceOf(schema, argument)) {
+      if (!(schema instanceof LambdaType)
+          && !GenericsUtil.instanceOf(schema, argument.getSqlType())) {
         return false;
       }
-
-      final Map<GenericType, SqlType> genericMapping = GenericsUtil
-          .resolveGenerics(schema, argument);
+      final Map<GenericType, SqlType> genericMapping =
+          GenericsUtil.resolveGenerics(schema, argument);
 
       for (final Entry<GenericType, SqlType> entry : genericMapping.entrySet()) {
         final SqlType old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());

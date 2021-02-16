@@ -39,6 +39,10 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -47,6 +51,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -108,8 +113,8 @@ public class CodeGenRunner {
 
   public CodeGenSpec getCodeGenSpec(final Expression expression) {
     final Visitor visitor = new Visitor();
-
-    visitor.process(expression, null);
+    final TypeContext context = new TypeContext();
+    visitor.process(expression, context);
     return visitor.spec.build();
   }
 
@@ -139,9 +144,11 @@ public class CodeGenRunner {
 
       return new ExpressionMetadata(ee, spec, returnType, expression);
     } catch (KsqlException | CompileException e) {
+      e.printStackTrace();
       throw new KsqlException("Invalid " + type + ": " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);
     } catch (final Exception e) {
+      e.printStackTrace();
       throw new RuntimeException("Unexpected error generating code for " + type
           + ". expression:" + expression, e);
     }
@@ -174,21 +181,45 @@ public class CodeGenRunner {
 
     @Override
     public Void visitLikePredicate(final LikePredicate node, final TypeContext context) {
-      process(node.getValue(), null);
-      process(node.getPattern(), null);
+      process(node.getValue(), context);
+      process(node.getPattern(), context);
       return null;
     }
 
     @Override
     public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
-      final List<SqlType> argumentTypes = new ArrayList<>();
+      final List<SqlArgument> argumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
+      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       for (final Expression argExpr : node.getArguments()) {
-        process(argExpr, null);
-        argumentTypes.add(expressionTypeManager.getExpressionSqlType(argExpr));
+        process(argExpr, context);
+        final SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context);
+        // for lambdas - if we see this it's the  array/map being passed in we save the type
+        if (context.notAllInputsSeen()) {
+          if (newSqlType instanceof SqlArray) {
+            final SqlArray inputArray = (SqlArray) newSqlType;
+            context.addLambdaInputType(inputArray.getItemType());
+          } else if (newSqlType instanceof SqlMap) {
+            final SqlMap inputMap = (SqlMap) newSqlType;
+            context.addLambdaInputType(inputMap.getKeyType());
+            context.addLambdaInputType(inputMap.getValueType());
+          } else {
+            context.addLambdaInputType(newSqlType);
+          }
+        }
+
+        if (argExpr instanceof LambdaFunctionCall) {
+          argumentTypes.add(
+              SqlArgument.of(null,
+                  SqlLambda.of(context.getLambdaInputTypes(),
+                      newSqlType))
+          );
+
+        } else {
+          argumentTypes.add(SqlArgument.of(newSqlType, null));
+        }
       }
 
-      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       final KsqlScalarFunction function = holder.getFunction(argumentTypes);
       spec.addFunction(
           function.name(),
@@ -257,13 +288,14 @@ public class CodeGenRunner {
     public Void visitDereferenceExpression(
         final DereferenceExpression node, final TypeContext context
     ) {
-      process(node.getBase(), null);
+      process(node.getBase(), context);
       return null;
     }
 
     @Override
     public Void visitLambdaExpression(final LambdaFunctionCall node, final TypeContext context) {
-      process(node.getBody(), null);
+      context.mapLambdaInputTypes(node.getArguments());
+      process(node.getBody(), context);
       return null;
     }
 
