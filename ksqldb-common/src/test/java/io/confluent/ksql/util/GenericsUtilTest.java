@@ -156,7 +156,7 @@ public class GenericsUtilTest {
   public void shouldIdentifyArrayGeneric() {
     // Given:
     final ArrayType a = ArrayType.of(GenericType.of("A"));
-    final SqlArgument instance = SqlArgument.of(SqlTypes.STRING, null);
+    final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING), null);
 
     // When:
     final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);

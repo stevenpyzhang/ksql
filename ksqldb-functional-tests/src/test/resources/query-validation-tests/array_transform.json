@@ -7,7 +7,7 @@
       "name": "apply lambda function to array",
       "statements": [
         "CREATE STREAM test (ID STRING KEY, numbers ARRAY<INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ID, TRANSFORM_ARRAY(numbers, x => x + 5) AS c FROM test;"
+        "CREATE STREAM OUTPUT AS SELECT ID, ARRAY_TRANSFORM(numbers, x => x + 5) AS c FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "one", "value": {"numbers": [3, 6]}},
@@ -24,7 +24,7 @@
       "name": "capitalize string",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<string>) WITH (kafka_topic='test_topic',value_format='AVRO');",
-        "CREATE STREAM OUTPUT as SELECT ID, transform_array(VALUE, x => UCASE(x)) AS LAMBDA FROM TEST;"
+        "CREATE STREAM OUTPUT as SELECT ID, ARRAY_TRANSFORM(VALUE, x => UCASE(x)) AS LAMBDA FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"VALUE": ["hello", "these", "are", "my", "strings"]}},
@@ -41,7 +41,7 @@
       "name": "case check - input: double, output: string",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<double>) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE STREAM OUTPUT as SELECT ID, TRANSFORM_ARRAY(VALUE, x => CASE WHEN x > 10 THEN 'above 10' ELSE 'TOO LOW' END) as SUM from TEST emit changes;"
+        "CREATE STREAM OUTPUT as SELECT ID, ARRAY_TRANSFORM(VALUE, x => CASE WHEN x > 10 THEN 'above 10' ELSE 'TOO LOW' END) as SUM from TEST emit changes;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": {"value": [2.32, 12123, 3.123, 4.45]}},
@@ -60,7 +60,7 @@
       "name": "decimal absolute test",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<DECIMAL(3, 2)>) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE STREAM OUTPUT as SELECT ID, TRANSFORM_ARRAY(VALUE, x => abs(x)) as abs from TEST emit changes;"
+        "CREATE STREAM OUTPUT as SELECT ID, ARRAY_TRANSFORM(VALUE, x => abs(x)) as abs from TEST emit changes;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": {"value": [-2.45, 3.67, 1.23]}},
@@ -79,7 +79,7 @@
       "name": "array max test",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<ARRAY<INTEGER>>) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE STREAM OUTPUT as SELECT ID, TRANSFORM_ARRAY(VALUE, x => array_max(x)) as max from TEST emit changes;"
+        "CREATE STREAM OUTPUT as SELECT ID, ARRAY_TRANSFORM(VALUE, x => array_max(x)) as max from TEST emit changes;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": {"value": [[5, 7, 1], [3, 6, 1]]}},

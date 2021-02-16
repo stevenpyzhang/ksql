@@ -374,7 +374,7 @@ public class UdfIndex<T extends FunctionSignature> {
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
     boolean accepts(final SqlArgument argument, final Map<GenericType, SqlType> reservedGenerics,
         final boolean allowCasts) {
-      if (argument == null) {
+      if (argument == null || (argument.getSqlLambda() == null && argument.getSqlType() == null)) {
         return true;
       }
 

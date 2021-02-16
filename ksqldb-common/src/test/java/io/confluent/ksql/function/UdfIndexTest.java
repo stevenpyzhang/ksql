@@ -415,7 +415,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(null));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(new SqlArgument[]{null}));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
